@@ -2,14 +2,14 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// TODO: Reemplaza esto con la configuración de tu proyecto de Firebase
+// Tu configuración de la app web de Firebase
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_AUTH_DOMAIN",
-  projectId: "TU_PROJECT_ID",
-  storageBucket: "TU_STORAGE_BUCKET",
-  messagingSenderId: "TU_MESSAGING_SENDER_ID",
-  appId: "TU_APP_ID"
+  apiKey: "AIzaSyDQLIN0Cr8QOP0fmAvIwcEKJ_bMA6DSKGg",
+  authDomain: "dulcesventa-d39d9.firebaseapp.com",
+  projectId: "dulcesventa-d39d9",
+  storageBucket: "dulcesventa-d39d9.appspot.com",
+  messagingSenderId: "33922184409",
+  appId: "1:33922184409:web:466bba42090f8c842e3ac8"
 };
 
 // Inicializa Firebase
