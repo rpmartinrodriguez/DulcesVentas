@@ -1,172 +1,142 @@
-/* Estilos base y paleta de colores rosa */
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: #FFF5F7; /* Fondo rosa muy, muy pálido */
-}
-
-/* Estilos de la navegación */
-.nav-link {
-    padding-bottom: 8px;
-    font-weight: 500;
-    color: #9D174D; /* Texto rosa oscuro */
-    transition: all 0.3s ease;
-    border-bottom: 2px solid transparent;
-}
-
-.nav-link:hover {
-    color: #DB2777; /* Rosa vibrante al pasar el mouse */
-}
-
-.nav-link.active {
-    color: #DB2777;
-    font-weight: 600;
-    border-bottom-color: #DB2777;
-}
-
-/* Estilo de los botones principales */
-.btn-primary {
-    background-color: #EC4899; /* Rosa principal */
-    color: white;
-    font-weight: 600;
-    border-radius: 8px;
-    padding: 10px 20px;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    border: none;
-    cursor: pointer;
-}
-
-.btn-primary:hover {
-    background-color: #DB2777; /* Rosa más oscuro al pasar el mouse */
-    transform: translateY(-2px);
-}
-
-.btn-primary:disabled {
-    background-color: #FBCFE8; /* Rosa pálido para estado deshabilitado */
-    cursor: not-allowed;
-    transform: none;
-}
-
-/* Estilo de los botones de eliminar */
-.btn-delete {
-    background-color: #FFF1F2; /* Fondo rosa pálido */
-    color: #BE185D; /* Texto rosa oscuro */
-    border-radius: 6px;
-    padding: 6px 10px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-.btn-delete:hover {
-    background-color: #FFE4E6;
-    color: #9D174D;
-}
-
-/* Estilo de las tarjetas contenedoras */
-.card {
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    border: 1px solid #FCE7F3; /* Borde rosa pálido */
-}
-
-/* Clases para ocultar y mostrar páginas */
-.hidden {
-    display: none;
-}
-
-/* Estilos para los inputs */
-input[type="text"]:focus, input[type="number"]:focus {
-     border-color: #EC4899;
-     box-shadow: 0 0 0 3px #FBCFE8;
-     outline: none;
-}
-
-/* --- ESTILOS RESPONSIVOS PARA EL DASHBOARD --- */
-
-/* Estilos para pantallas de celular (hasta 768px) */
-@media (max-width: 768px) {
-    /* Ocultamos la cabecera de la tabla */
-    #dashboard-table thead {
-        display: none;
-    }
-
-    /* Cada fila se convierte en un bloque (tarjeta) */
-    #dashboard-table tr {
-        display: block;
-        border: 1px solid #FBCFE8;
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        padding: 1rem;
-        background-color: #FFF1F2;
-    }
-
-    /* Cada celda se convierte en un bloque con espacio */
-    #dashboard-table td {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.5rem 0;
-        border-bottom: 1px solid #FCE7F3;
-    }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotizador Moderno</title>
     
-    #dashboard-table tr td:last-child {
-        border-bottom: none;
-    }
-
-    /* Usamos pseudo-elementos para añadir las etiquetas a cada celda */
-    #dashboard-table td::before {
-        content: attr(data-label);
-        font-weight: 600;
-        color: #9D174D;
-    }
+    <!-- Tailwind CSS para un diseño rápido y moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    /* Ajustes específicos para cada celda */
-    #dashboard-table td:nth-of-type(1)::before { content: "Seleccionar:"; }
-    #dashboard-table td:nth-of-type(2) { font-size: 1.1rem; font-weight: bold; color: #BE185D; }
-    #dashboard-table td:nth-of-type(2)::before { content: "Artículo:"; }
-    #dashboard-table td:nth-of-type(3)::before { content: "Precio Unitario:"; }
-    #dashboard-table td:nth-of-type(4)::before { content: "Cantidad:"; }
-    #dashboard-table td:nth-of-type(5) { font-size: 1.2rem; font-weight: bold; }
-    #dashboard-table td:nth-of-type(5)::before { content: "Total Artículo:"; }
+    <!-- Google Fonts para una tipografía elegante -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Hoja de estilos personalizada -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="text-gray-700">
 
-    #dashboard-articles-table input[type="checkbox"] {
-        width: 1.5rem;
-        height: 1.5rem;
-    }
-    #dashboard-articles-table input[type="number"] {
-        width: 80px;
-        padding: 8px;
-        font-size: 1rem;
-    }
-}
+    <div id="app-container" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <!-- Cabecera y Navegación -->
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-pink-800 text-center mb-4">Cotizador de Artículos</h1>
+            <nav class="flex justify-center space-x-6 sm:space-x-8 border-b border-pink-200 pb-3">
+                <a href="#" class="nav-link active" data-page="dashboard">Dashboard</a>
+                <a href="#" class="nav-link" data-page="articles">Artículos</a>
+                <a href="#" class="nav-link" data-page="sales">Ventas</a>
+            </nav>
+        </header>
 
-/* Estilos para la notificación */
-.notification {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 12px 24px;
-    border-radius: 8px;
-    color: white;
-    font-weight: 500;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease, bottom 0.3s ease;
-    z-index: 1000;
-    text-align: center;
-    width: calc(100% - 40px);
-    max-width: 400px;
-}
+        <main>
+            <!-- PÁGINA: DASHBOARD -->
+            <section id="dashboard-page" class="page">
+                <div class="card p-4 sm:p-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                        <h2 class="text-2xl font-semibold text-pink-700">Crear Nuevo Pedido</h2>
+                        <input type="search" id="search-input" placeholder="Buscar artículo..." class="search-bar">
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left" id="dashboard-table">
+                            <thead class="bg-pink-50 text-pink-600">
+                                <tr>
+                                    <th class="p-4 rounded-l-lg">Selección</th>
+                                    <th class="p-4">Artículo</th>
+                                    <th class="p-4">Precio</th>
+                                    <th class="p-4">Cantidad</th>
+                                    <th class="p-4 rounded-r-lg">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboard-articles-table">
+                                <!-- Los artículos se cargarán aquí dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div class="text-right w-full sm:w-auto">
+                            <span class="text-lg font-medium text-gray-600">Total Final:</span>
+                            <span id="final-total" class="text-3xl font-bold text-pink-800 ml-2">$0.00</span>
+                        </div>
+                        <button id="close-order-btn" class="btn-primary w-full sm:w-auto">Cerrar Pedido</button>
+                    </div>
+                </div>
+            </section>
 
-.notification.show {
-    opacity: 1;
-    visibility: visible;
-    bottom: 40px;
-}
+            <!-- PÁGINA: ARTÍCULOS -->
+            <section id="articles-page" class="page hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-1">
+                        <div class="card p-6 sticky top-8">
+                            <h2 class="text-2xl font-semibold text-pink-700 mb-4">Nuevo Artículo</h2>
+                            <form id="add-article-form" class="space-y-4">
+                                <div>
+                                    <label for="article-name" class="block text-sm font-medium text-gray-600">Nombre</label>
+                                    <input type="text" id="article-name" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-pink-500 focus:border-pink-500">
+                                </div>
+                                <div>
+                                    <label for="article-price" class="block text-sm font-medium text-gray-600">Precio</label>
+                                    <input type="number" id="article-price" step="0.01" min="0" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-pink-500 focus:border-pink-500">
+                                </div>
+                                <button type="submit" class="btn-primary w-full">Agregar Artículo</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 card p-6">
+                        <h2 class="text-2xl font-semibold text-pink-700 mb-4">Lista de Artículos</h2>
+                        <div id="articles-list" class="space-y-3">
+                            <!-- La lista de artículos se cargará aquí -->
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-.notification.success { background-color: #22c55e; }
-.notification.error { background-color: #ef4444; }
+            <!-- PÁGINA: VENTAS -->
+            <section id="sales-page" class="page hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2">
+                        <div class="card p-6">
+                            <h2 class="text-2xl font-semibold text-pink-700 mb-6">Historial de Ventas</h2>
+                            <div id="sales-history" class="space-y-4">
+                                <!-- El historial de ventas se cargará aquí -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-1">
+                        <div id="sales-summary-card" class="card p-6 sticky top-8">
+                            <!-- El resumen de ventas se cargará aquí -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL PARA EDITAR ARTÍCULO -->
+    <div id="edit-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="close-modal-btn" class="modal-close-btn">&times;</button>
+            <h2 class="text-2xl font-semibold text-pink-700 mb-4">Editar Artículo</h2>
+            <form id="edit-article-form" class="space-y-4">
+                <input type="hidden" id="edit-article-id">
+                <div>
+                    <label for="edit-article-name" class="block text-sm font-medium text-gray-600">Nombre</label>
+                    <input type="text" id="edit-article-name" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-pink-500 focus:border-pink-500">
+                </div>
+                <div>
+                    <label for="edit-article-price" class="block text-sm font-medium text-gray-600">Precio</label>
+                    <input type="number" id="edit-article-price" step="0.01" min="0" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-pink-500 focus:border-pink-500">
+                </div>
+                <button type="submit" class="btn-primary w-full">Guardar Cambios</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Elemento para la notificación -->
+    <div id="notification" class="notification"></div>
+
+    <!-- Script de la aplicación y conexión con Firebase -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
