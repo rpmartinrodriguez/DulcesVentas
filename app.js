@@ -37,6 +37,7 @@ const closeModalBtn = document.getElementById('close-modal-btn');
 const editArticleForm = document.getElementById('edit-article-form');
 
 let currentArticles = []; 
+let dashboardState = {}; // Almacena el estado de selecciones y cantidades
 
 // --- LÓGICA DE NOTIFICACIÓN ---
 let notificationTimer;
@@ -68,9 +69,23 @@ onSnapshot(articlesCollection, (snapshot) => {
         articles.push({ id: doc.id, ...doc.data() });
     });
     currentArticles = articles;
+    initializeDashboardState(); // Prepara el estado del dashboard
     renderArticles(articles);
-    filterAndRenderDashboard(); // Actualiza el dashboard con la lista completa
+    filterAndRenderDashboard();
 });
+
+// Inicializa o actualiza el objeto de estado para que coincida con los artículos
+function initializeDashboardState() {
+    const newState = {};
+    currentArticles.forEach(article => {
+        if (dashboardState[article.id]) {
+            newState[article.id] = dashboardState[article.id];
+        } else {
+            newState[article.id] = { selected: false, quantity: 1 };
+        }
+    });
+    dashboardState = newState;
+}
 
 function renderArticles(articles) {
     articlesList.innerHTML = '';
@@ -112,19 +127,16 @@ addArticleForm.addEventListener('submit', async (e) => {
 articlesList.addEventListener('click', async (e) => {
     const target = e.target;
     const id = target.dataset.id;
-
     if (target.classList.contains('btn-delete')) {
         if (confirm('¿Estás seguro de que quieres eliminar este artículo?')) {
             try {
                 await deleteDoc(doc(db, 'articles', id));
                 showNotification('Artículo eliminado', 'success');
             } catch (error) {
-                console.error("Error al eliminar el artículo: ", error);
                 showNotification('Error al eliminar', 'error');
             }
         }
     }
-
     if (target.classList.contains('btn-edit')) {
         const articleToEdit = currentArticles.find(article => article.id === id);
         if (articleToEdit) {
@@ -137,33 +149,21 @@ articlesList.addEventListener('click', async (e) => {
 });
 
 // --- LÓGICA DEL MODAL DE EDICIÓN ---
-closeModalBtn.addEventListener('click', () => {
-    editModal.classList.add('hidden');
-});
-
+closeModalBtn.addEventListener('click', () => editModal.classList.add('hidden'));
 editModal.addEventListener('click', (e) => {
-    if (e.target === editModal) {
-        editModal.classList.add('hidden');
-    }
+    if (e.target === editModal) editModal.classList.add('hidden');
 });
-
 editArticleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = editArticleForm['edit-article-id'].value;
     const newName = editArticleForm['edit-article-name'].value;
     const newPrice = parseFloat(editArticleForm['edit-article-price'].value);
-
     if (id && newName && newPrice) {
         try {
-            const articleRef = doc(db, 'articles', id);
-            await updateDoc(articleRef, {
-                name: newName,
-                price: newPrice
-            });
+            await updateDoc(doc(db, 'articles', id), { name: newName, price: newPrice });
             showNotification('Artículo actualizado con éxito', 'success');
             editModal.classList.add('hidden');
         } catch (error) {
-            console.error('Error al actualizar el artículo:', error);
             showNotification('Error al actualizar', 'error');
         }
     }
@@ -178,25 +178,29 @@ function filterAndRenderDashboard() {
         article.name.toLowerCase().includes(searchTerm)
     );
     renderDashboardTable(filteredArticles);
+    calculateFinalTotal();
 }
 
 function renderDashboardTable(articles) {
     dashboardTableBody.innerHTML = '';
     if (articles.length === 0) {
         dashboardTableBody.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-gray-500">No se encontraron artículos.</td></tr>';
-        calculateFinalTotal();
         return;
     }
     articles.forEach(article => {
+        const state = dashboardState[article.id] || { selected: false, quantity: 1 };
         const row = document.createElement('tr');
         row.dataset.articleId = article.id;
         row.dataset.price = article.price;
+        const isChecked = state.selected ? 'checked' : '';
+        const isDisabled = !state.selected ? 'disabled' : '';
+        const itemTotal = state.selected ? (article.price * state.quantity).toFixed(2) : '0.00';
         row.innerHTML = `
-            <td data-label="Seleccionar"><input type="checkbox" class="article-select"></td>
+            <td data-label="Seleccionar"><input type="checkbox" class="article-select" ${isChecked}></td>
             <td data-label="Artículo" class="font-medium text-pink-900">${article.name}</td>
             <td data-label="Precio" class="text-gray-600">$${parseFloat(article.price).toFixed(2)}</td>
-            <td data-label="Cantidad"><input type="number" value="1" min="1" class="article-quantity border rounded p-1 w-20 text-center" disabled></td>
-            <td data-label="Total" class="font-semibold text-pink-800 article-total">$0.00</td>
+            <td data-label="Cantidad"><input type="number" value="${state.quantity}" min="1" class="article-quantity border rounded p-1 w-20 text-center" ${isDisabled}></td>
+            <td data-label="Total" class="font-semibold text-pink-800 article-total">$${itemTotal}</td>
         `;
         dashboardTableBody.appendChild(row);
     });
@@ -204,34 +208,42 @@ function renderDashboardTable(articles) {
 
 function calculateFinalTotal() {
     let finalTotal = 0;
-    const rows = dashboardTableBody.querySelectorAll('tr');
-    rows.forEach(row => {
-        const isSelected = row.querySelector('.article-select')?.checked;
-        if (isSelected) {
-            const price = parseFloat(row.dataset.price);
-            const quantity = parseInt(row.querySelector('.article-quantity').value);
-            const total = price * quantity;
-            finalTotal += total;
-            row.querySelector('.article-total').textContent = `$${total.toFixed(2)}`;
-        } else {
-            if(row.querySelector('.article-total')) {
-                row.querySelector('.article-total').textContent = `$0.00`;
+    for (const articleId in dashboardState) {
+        const state = dashboardState[articleId];
+        if (state.selected) {
+            const article = currentArticles.find(a => a.id === articleId);
+            if (article) {
+                finalTotal += article.price * state.quantity;
             }
         }
-    });
+    }
     finalTotalEl.textContent = `$${finalTotal.toFixed(2)}`;
     closeOrderBtn.disabled = finalTotal === 0;
 }
 
 dashboardTableBody.addEventListener('input', (e) => {
-    if (e.target.classList.contains('article-select') || e.target.classList.contains('article-quantity')) {
-        const row = e.target.closest('tr');
-        const quantityInput = row.querySelector('.article-quantity');
+    const target = e.target;
+    if (target.classList.contains('article-select') || target.classList.contains('article-quantity')) {
+        const row = target.closest('tr');
+        const articleId = row.dataset.articleId;
+        if (!articleId || !dashboardState[articleId]) return;
+
         const isSelected = row.querySelector('.article-select').checked;
-        quantityInput.disabled = !isSelected;
-        if (!isSelected) {
-            quantityInput.value = 1;
+        const quantity = parseInt(row.querySelector('.article-quantity').value);
+        
+        // Actualizar el objeto de estado
+        dashboardState[articleId].selected = isSelected;
+        dashboardState[articleId].quantity = quantity || 1;
+
+        // Actualizar la UI de la fila
+        row.querySelector('.article-quantity').disabled = !isSelected;
+        if (isSelected) {
+            const price = parseFloat(row.dataset.price);
+            row.querySelector('.article-total').textContent = `$${(price * dashboardState[articleId].quantity).toFixed(2)}`;
+        } else {
+            row.querySelector('.article-total').textContent = '$0.00';
         }
+
         calculateFinalTotal();
     }
 });
@@ -239,31 +251,28 @@ dashboardTableBody.addEventListener('input', (e) => {
 closeOrderBtn.addEventListener('click', async () => {
     const items = [];
     let totalSale = 0;
-    dashboardTableBody.querySelectorAll('tr').forEach(row => {
-        if (row.querySelector('.article-select')?.checked) {
-            const article = currentArticles.find(a => a.id === row.dataset.articleId);
-            const quantity = parseInt(row.querySelector('.article-quantity').value);
-            const price = parseFloat(row.dataset.price);
-            const total = price * quantity;
-            items.push({
-                articleId: article.id, name: article.name, price, quantity, total
-            });
-            totalSale += total;
+    for (const articleId in dashboardState) {
+        const state = dashboardState[articleId];
+        if (state.selected) {
+            const article = currentArticles.find(a => a.id === articleId);
+            if (article) {
+                const total = article.price * state.quantity;
+                items.push({
+                    articleId: article.id, name: article.name, price: article.price, quantity: state.quantity, total
+                });
+                totalSale += total;
+            }
         }
-    });
-
+    }
     if (items.length > 0) {
         try {
             await addDoc(salesCollection, { items, total: totalSale, createdAt: new Date() });
             showNotification('¡Venta registrada con éxito!', 'success');
-            dashboardTableBody.querySelectorAll('.article-select').forEach(cb => cb.checked = false);
-            dashboardTableBody.querySelectorAll('.article-quantity').forEach(inp => {
-                inp.value = 1;
-                inp.disabled = true;
+            items.forEach(item => {
+                dashboardState[item.articleId] = { selected: false, quantity: 1 };
             });
-            calculateFinalTotal();
+            filterAndRenderDashboard();
         } catch (error) {
-            console.error("Error al registrar la venta: ", error);
             showNotification('Hubo un error al registrar la venta.', 'error');
         }
     } else {
@@ -312,17 +321,11 @@ function renderSales(sales) {
 function renderSalesSummary(sales) {
     const grandTotal = sales.reduce((sum, sale) => sum + sale.total, 0);
     const productSummary = {};
-
     sales.forEach(sale => {
         sale.items.forEach(item => {
-            if (productSummary[item.name]) {
-                productSummary[item.name] += item.quantity;
-            } else {
-                productSummary[item.name] = item.quantity;
-            }
+            productSummary[item.name] = (productSummary[item.name] || 0) + item.quantity;
         });
     });
-
     let summaryHtml = `
         <h2 class="text-2xl font-semibold text-pink-700 mb-4">Resumen General</h2>
         <div class="mb-6">
@@ -331,9 +334,7 @@ function renderSalesSummary(sales) {
         </div>
         <h3 class="text-xl font-semibold text-pink-700 mb-3 border-t border-pink-200 pt-4">Artículos Vendidos</h3>
     `;
-
     const productEntries = Object.entries(productSummary);
-
     if (productEntries.length === 0) {
         summaryHtml += '<p class="text-sm text-gray-500">Aún no se han vendido artículos.</p>';
     } else {
@@ -349,6 +350,5 @@ function renderSalesSummary(sales) {
         });
         summaryHtml += '</ul>';
     }
-
     salesSummaryCard.innerHTML = summaryHtml;
 }
