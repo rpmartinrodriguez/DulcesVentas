@@ -29,51 +29,56 @@ const dashboardTableBody = document.getElementById('dashboard-articles-table');
 const finalTotalEl = document.getElementById('final-total');
 const closeOrderBtn = document.getElementById('close-order-btn');
 const salesHistoryEl = document.getElementById('sales-history');
+const notificationEl = document.getElementById('notification');
 
-let currentArticles = []; // Almacena los artículos para fácil acceso
+let currentArticles = []; 
+
+// --- LÓGICA DE NOTIFICACIÓN ---
+let notificationTimer;
+function showNotification(message, type = 'success') {
+    clearTimeout(notificationTimer);
+    notificationEl.textContent = message;
+    notificationEl.className = `notification show ${type}`;
+    notificationTimer = setTimeout(() => {
+        notificationEl.classList.remove('show');
+    }, 3000);
+}
 
 // --- NAVEGACIÓN ---
 navLinks.forEach(link => {
     link.addEventListener('click', (e) => {
         e.preventDefault();
         const pageId = link.dataset.page;
-
-        // Ocultar todas las páginas y mostrar la seleccionada
         pages.forEach(page => page.classList.add('hidden'));
         document.getElementById(`${pageId}-page`).classList.remove('hidden');
-
-        // Actualizar clase activa en los enlaces de navegación
         navLinks.forEach(nav => nav.classList.remove('active'));
         link.classList.add('active');
     });
 });
 
 // --- LÓGICA DE ARTÍCULOS ---
-
-// Escuchar cambios en la colección de artículos en tiempo real
 onSnapshot(articlesCollection, (snapshot) => {
     const articles = [];
     snapshot.forEach(doc => {
         articles.push({ id: doc.id, ...doc.data() });
     });
-    currentArticles = articles; // Actualiza la lista global
+    currentArticles = articles;
     renderArticles(articles);
     renderDashboardTable(articles);
 });
 
-// Renderizar la lista de artículos en la página "Artículos"
 function renderArticles(articles) {
-    articlesList.innerHTML = ''; // Limpiar la lista
+    articlesList.innerHTML = '';
     if (articles.length === 0) {
         articlesList.innerHTML = '<p class="text-center p-8 text-gray-500">No hay artículos. ¡Agrega el primero!</p>';
         return;
     }
     articles.forEach(article => {
         const articleEl = document.createElement('div');
-        articleEl.className = 'flex justify-between items-center bg-rose-50 p-3 rounded-lg';
+        articleEl.className = 'flex justify-between items-center bg-pink-50 p-3 rounded-lg';
         articleEl.innerHTML = `
             <div>
-                <p class="font-semibold text-rose-800">${article.name}</p>
+                <p class="font-semibold text-pink-800">${article.name}</p>
                 <p class="text-sm text-gray-600">$${parseFloat(article.price).toFixed(2)}</p>
             </div>
             <button class="btn-delete" data-id="${article.id}">Eliminar</button>
@@ -82,12 +87,10 @@ function renderArticles(articles) {
     });
 }
 
-// Manejar el envío del formulario para agregar un nuevo artículo
 addArticleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = addArticleForm['article-name'].value;
     const price = addArticleForm['article-price'].value;
-
     if (name && price) {
         try {
             await addDoc(articlesCollection, { name, price: parseFloat(price) });
@@ -98,7 +101,6 @@ addArticleForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Manejar clics en la lista de artículos (para eliminar)
 articlesList.addEventListener('click', async (e) => {
     if (e.target.classList.contains('btn-delete')) {
         const id = e.target.dataset.id;
@@ -112,10 +114,7 @@ articlesList.addEventListener('click', async (e) => {
     }
 });
 
-
 // --- LÓGICA DEL DASHBOARD ---
-
-// Renderizar la tabla de artículos en el Dashboard
 function renderDashboardTable(articles) {
     dashboardTableBody.innerHTML = '';
     if (articles.length === 0) {
@@ -127,19 +126,18 @@ function renderDashboardTable(articles) {
         const row = document.createElement('tr');
         row.dataset.articleId = article.id;
         row.dataset.price = article.price;
-        row.className = 'border-b border-rose-100';
+        // El CSS se encargará de la apariencia en móvil y escritorio
         row.innerHTML = `
-            <td class="p-4"><input type="checkbox" class="article-select"></td>
-            <td class="p-4 font-medium text-rose-900">${article.name}</td>
-            <td class="p-4 text-gray-600">$${parseFloat(article.price).toFixed(2)}</td>
-            <td class="p-4"><input type="number" value="1" min="1" class="article-quantity border rounded p-1 w-20 text-center" disabled></td>
-            <td class="p-4 font-semibold text-rose-800 article-total">$0.00</td>
+            <td data-label="Seleccionar"><input type="checkbox" class="article-select"></td>
+            <td data-label="Artículo" class="font-medium text-pink-900">${article.name}</td>
+            <td data-label="Precio" class="text-gray-600">$${parseFloat(article.price).toFixed(2)}</td>
+            <td data-label="Cantidad"><input type="number" value="1" min="1" class="article-quantity border rounded p-1 w-20 text-center" disabled></td>
+            <td data-label="Total" class="font-semibold text-pink-800 article-total">$0.00</td>
         `;
         dashboardTableBody.appendChild(row);
     });
 }
 
-// Calcular el total final del pedido
 function calculateFinalTotal() {
     let finalTotal = 0;
     const rows = dashboardTableBody.querySelectorAll('tr');
@@ -158,12 +156,9 @@ function calculateFinalTotal() {
         }
     });
     finalTotalEl.textContent = `$${finalTotal.toFixed(2)}`;
-    
-    // Habilitar o deshabilitar el botón de cierre de pedido
     closeOrderBtn.disabled = finalTotal === 0;
 }
 
-// Escuchar cambios en la tabla del dashboard (checkboxes y cantidades)
 dashboardTableBody.addEventListener('input', (e) => {
     if (e.target.classList.contains('article-select') || e.target.classList.contains('article-quantity')) {
         const row = e.target.closest('tr');
@@ -177,26 +172,17 @@ dashboardTableBody.addEventListener('input', (e) => {
     }
 });
 
-// Manejar el cierre del pedido
 closeOrderBtn.addEventListener('click', async () => {
     const items = [];
     let totalSale = 0;
-
     dashboardTableBody.querySelectorAll('tr').forEach(row => {
-        const isSelected = row.querySelector('.article-select')?.checked;
-        if (isSelected) {
-            const articleId = row.dataset.articleId;
-            const article = currentArticles.find(a => a.id === articleId);
+        if (row.querySelector('.article-select')?.checked) {
+            const article = currentArticles.find(a => a.id === row.dataset.articleId);
             const quantity = parseInt(row.querySelector('.article-quantity').value);
             const price = parseFloat(row.dataset.price);
             const total = price * quantity;
-            
             items.push({
-                articleId: article.id,
-                name: article.name,
-                price: price,
-                quantity: quantity,
-                total: total
+                articleId: article.id, name: article.name, price, quantity, total
             });
             totalSale += total;
         }
@@ -204,13 +190,8 @@ closeOrderBtn.addEventListener('click', async () => {
 
     if (items.length > 0) {
         try {
-            await addDoc(salesCollection, {
-                items: items,
-                total: totalSale,
-                createdAt: new Date()
-            });
-            alert('¡Venta registrada con éxito!');
-            // Resetear el dashboard
+            await addDoc(salesCollection, { items, total: totalSale, createdAt: new Date() });
+            showNotification('¡Venta registrada con éxito!', 'success');
             dashboardTableBody.querySelectorAll('.article-select').forEach(cb => cb.checked = false);
             dashboardTableBody.querySelectorAll('.article-quantity').forEach(inp => {
                 inp.value = 1;
@@ -219,28 +200,21 @@ closeOrderBtn.addEventListener('click', async () => {
             calculateFinalTotal();
         } catch (error) {
             console.error("Error al registrar la venta: ", error);
-            alert('Hubo un error al registrar la venta.');
+            showNotification('Hubo un error al registrar la venta.', 'error');
         }
     } else {
-        alert('Debes seleccionar al menos un artículo.');
+        showNotification('Debes seleccionar al menos un artículo.', 'error');
     }
 });
 
-
 // --- LÓGICA DE VENTAS ---
-
-// Escuchar cambios en la colección de ventas
 onSnapshot(salesCollection, (snapshot) => {
     const sales = [];
-    snapshot.forEach(doc => {
-        sales.push({ id: doc.id, ...doc.data() });
-    });
-    // Ordenar por fecha, más reciente primero
+    snapshot.forEach(doc => sales.push({ id: doc.id, ...doc.data() }));
     sales.sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate());
     renderSales(sales);
 });
 
-// Renderizar el historial de ventas
 function renderSales(sales) {
     salesHistoryEl.innerHTML = '';
     if (sales.length === 0) {
@@ -249,27 +223,22 @@ function renderSales(sales) {
     }
     sales.forEach(sale => {
         const saleCard = document.createElement('div');
-        saleCard.className = 'border border-rose-200 rounded-lg p-4';
-        
+        saleCard.className = 'border border-pink-200 rounded-lg p-4';
         const saleDate = sale.createdAt.toDate().toLocaleString('es-ES', {
             year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
         });
-
         let itemsHtml = sale.items.map(item => `
             <li class="flex justify-between text-sm">
                 <span>${item.quantity} x ${item.name}</span>
                 <span class="text-gray-600">$${item.total.toFixed(2)}</span>
             </li>
         `).join('');
-
         saleCard.innerHTML = `
             <div class="flex justify-between items-center mb-3">
-                <p class="font-semibold text-rose-800">${saleDate}</p>
-                <p class="text-xl font-bold text-rose-900">$${sale.total.toFixed(2)}</p>
+                <p class="font-semibold text-pink-800">${saleDate}</p>
+                <p class="text-xl font-bold text-pink-900">$${sale.total.toFixed(2)}</p>
             </div>
-            <ul class="space-y-1 border-t border-rose-100 pt-2">
-                ${itemsHtml}
-            </ul>
+            <ul class="space-y-1 border-t border-pink-100 pt-2">${itemsHtml}</ul>
         `;
         salesHistoryEl.appendChild(saleCard);
     });
