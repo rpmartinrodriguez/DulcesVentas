@@ -30,6 +30,7 @@ const finalTotalEl = document.getElementById('final-total');
 const closeOrderBtn = document.getElementById('close-order-btn');
 const salesHistoryEl = document.getElementById('sales-history');
 const notificationEl = document.getElementById('notification');
+const salesSummaryCard = document.getElementById('sales-summary-card');
 
 let currentArticles = []; 
 
@@ -126,7 +127,6 @@ function renderDashboardTable(articles) {
         const row = document.createElement('tr');
         row.dataset.articleId = article.id;
         row.dataset.price = article.price;
-        // El CSS se encargará de la apariencia en móvil y escritorio
         row.innerHTML = `
             <td data-label="Seleccionar"><input type="checkbox" class="article-select"></td>
             <td data-label="Artículo" class="font-medium text-pink-900">${article.name}</td>
@@ -213,6 +213,7 @@ onSnapshot(salesCollection, (snapshot) => {
     snapshot.forEach(doc => sales.push({ id: doc.id, ...doc.data() }));
     sales.sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate());
     renderSales(sales);
+    renderSalesSummary(sales);
 });
 
 function renderSales(sales) {
@@ -242,4 +243,49 @@ function renderSales(sales) {
         `;
         salesHistoryEl.appendChild(saleCard);
     });
+}
+
+// FUNCIÓN PARA RENDERIZAR EL RESUMEN DE VENTAS
+function renderSalesSummary(sales) {
+    const grandTotal = sales.reduce((sum, sale) => sum + sale.total, 0);
+    const productSummary = {};
+
+    sales.forEach(sale => {
+        sale.items.forEach(item => {
+            if (productSummary[item.name]) {
+                productSummary[item.name] += item.quantity;
+            } else {
+                productSummary[item.name] = item.quantity;
+            }
+        });
+    });
+
+    let summaryHtml = `
+        <h2 class="text-2xl font-semibold text-pink-700 mb-4">Resumen General</h2>
+        <div class="mb-6">
+            <p class="text-lg text-gray-600">Total Vendido</p>
+            <p class="text-4xl font-bold text-pink-800">$${grandTotal.toFixed(2)}</p>
+        </div>
+        <h3 class="text-xl font-semibold text-pink-700 mb-3 border-t border-pink-200 pt-4">Artículos Vendidos</h3>
+    `;
+
+    const productEntries = Object.entries(productSummary);
+
+    if (productEntries.length === 0) {
+        summaryHtml += '<p class="text-sm text-gray-500">Aún no se han vendido artículos.</p>';
+    } else {
+        summaryHtml += '<ul class="space-y-2">';
+        productEntries.sort((a, b) => a[0].localeCompare(b[0])); // Ordenar alfabéticamente
+        productEntries.forEach(([name, quantity]) => {
+            summaryHtml += `
+                <li class="flex justify-between items-center text-sm bg-pink-50 p-2 rounded">
+                    <span class="font-medium text-pink-900">${name}</span>
+                    <span class="font-bold text-pink-700">${quantity} u.</span>
+                </li>
+            `;
+        });
+        summaryHtml += '</ul>';
+    }
+
+    salesSummaryCard.innerHTML = summaryHtml;
 }
