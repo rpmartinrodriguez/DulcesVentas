@@ -1,6 +1,6 @@
 // Importa las funciones que necesitas de los SDKs de Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Tu configuración de la app web de Firebase
 const firebaseConfig = {
@@ -31,6 +31,10 @@ const closeOrderBtn = document.getElementById('close-order-btn');
 const salesHistoryEl = document.getElementById('sales-history');
 const notificationEl = document.getElementById('notification');
 const salesSummaryCard = document.getElementById('sales-summary-card');
+const searchInput = document.getElementById('search-input');
+const editModal = document.getElementById('edit-modal');
+const closeModalBtn = document.getElementById('close-modal-btn');
+const editArticleForm = document.getElementById('edit-article-form');
 
 let currentArticles = []; 
 
@@ -65,7 +69,7 @@ onSnapshot(articlesCollection, (snapshot) => {
     });
     currentArticles = articles;
     renderArticles(articles);
-    renderDashboardTable(articles);
+    filterAndRenderDashboard(); // Actualiza el dashboard con la lista completa
 });
 
 function renderArticles(articles) {
@@ -82,7 +86,10 @@ function renderArticles(articles) {
                 <p class="font-semibold text-pink-800">${article.name}</p>
                 <p class="text-sm text-gray-600">$${parseFloat(article.price).toFixed(2)}</p>
             </div>
-            <button class="btn-delete" data-id="${article.id}">Eliminar</button>
+            <div class="flex gap-2">
+                <button class="btn-edit" data-id="${article.id}">Editar</button>
+                <button class="btn-delete" data-id="${article.id}">Eliminar</button>
+            </div>
         `;
         articlesList.appendChild(articleEl);
     });
@@ -103,23 +110,80 @@ addArticleForm.addEventListener('submit', async (e) => {
 });
 
 articlesList.addEventListener('click', async (e) => {
-    if (e.target.classList.contains('btn-delete')) {
-        const id = e.target.dataset.id;
+    const target = e.target;
+    const id = target.dataset.id;
+
+    if (target.classList.contains('btn-delete')) {
         if (confirm('¿Estás seguro de que quieres eliminar este artículo?')) {
             try {
                 await deleteDoc(doc(db, 'articles', id));
+                showNotification('Artículo eliminado', 'success');
             } catch (error) {
                 console.error("Error al eliminar el artículo: ", error);
+                showNotification('Error al eliminar', 'error');
             }
+        }
+    }
+
+    if (target.classList.contains('btn-edit')) {
+        const articleToEdit = currentArticles.find(article => article.id === id);
+        if (articleToEdit) {
+            editArticleForm['edit-article-id'].value = articleToEdit.id;
+            editArticleForm['edit-article-name'].value = articleToEdit.name;
+            editArticleForm['edit-article-price'].value = articleToEdit.price;
+            editModal.classList.remove('hidden');
         }
     }
 });
 
-// --- LÓGICA DEL DASHBOARD ---
+// --- LÓGICA DEL MODAL DE EDICIÓN ---
+closeModalBtn.addEventListener('click', () => {
+    editModal.classList.add('hidden');
+});
+
+editModal.addEventListener('click', (e) => {
+    if (e.target === editModal) {
+        editModal.classList.add('hidden');
+    }
+});
+
+editArticleForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = editArticleForm['edit-article-id'].value;
+    const newName = editArticleForm['edit-article-name'].value;
+    const newPrice = parseFloat(editArticleForm['edit-article-price'].value);
+
+    if (id && newName && newPrice) {
+        try {
+            const articleRef = doc(db, 'articles', id);
+            await updateDoc(articleRef, {
+                name: newName,
+                price: newPrice
+            });
+            showNotification('Artículo actualizado con éxito', 'success');
+            editModal.classList.add('hidden');
+        } catch (error) {
+            console.error('Error al actualizar el artículo:', error);
+            showNotification('Error al actualizar', 'error');
+        }
+    }
+});
+
+// --- LÓGICA DEL DASHBOARD Y BÚSQUEDA ---
+searchInput.addEventListener('input', filterAndRenderDashboard);
+
+function filterAndRenderDashboard() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const filteredArticles = currentArticles.filter(article => 
+        article.name.toLowerCase().includes(searchTerm)
+    );
+    renderDashboardTable(filteredArticles);
+}
+
 function renderDashboardTable(articles) {
     dashboardTableBody.innerHTML = '';
     if (articles.length === 0) {
-        dashboardTableBody.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-gray-500">No hay artículos. Agrega algunos en la pestaña \'Artículos\'.</td></tr>';
+        dashboardTableBody.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-gray-500">No se encontraron artículos.</td></tr>';
         calculateFinalTotal();
         return;
     }
@@ -245,7 +309,6 @@ function renderSales(sales) {
     });
 }
 
-// FUNCIÓN PARA RENDERIZAR EL RESUMEN DE VENTAS
 function renderSalesSummary(sales) {
     const grandTotal = sales.reduce((sum, sale) => sum + sale.total, 0);
     const productSummary = {};
@@ -275,7 +338,7 @@ function renderSalesSummary(sales) {
         summaryHtml += '<p class="text-sm text-gray-500">Aún no se han vendido artículos.</p>';
     } else {
         summaryHtml += '<ul class="space-y-2">';
-        productEntries.sort((a, b) => a[0].localeCompare(b[0])); // Ordenar alfabéticamente
+        productEntries.sort((a, b) => a[0].localeCompare(b[0]));
         productEntries.forEach(([name, quantity]) => {
             summaryHtml += `
                 <li class="flex justify-between items-center text-sm bg-pink-50 p-2 rounded">
