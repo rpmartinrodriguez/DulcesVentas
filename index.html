@@ -22,9 +22,9 @@
         
         <!-- Cabecera y Navegación -->
         <header class="mb-8">
-            <h1 class="text-4xl font-bold text-pink-800 text-center mb-4">Dulces Ventas</h1>
+            <h1 class="text-4xl font-bold text-pink-800 text-center mb-4">Cotizador de Artículos</h1>
             <nav class="flex justify-center space-x-6 sm:space-x-8 border-b border-pink-200 pb-3">
-                <a href="#" class="nav-link active" data-page="dashboard">Pedidos</a>
+                <a href="#" class="nav-link active" data-page="dashboard">Dashboard</a>
                 <a href="#" class="nav-link" data-page="articles">Artículos</a>
                 <a href="#" class="nav-link" data-page="sales">Ventas</a>
             </nav>
@@ -34,11 +34,23 @@
             <!-- PÁGINA: DASHBOARD -->
             <section id="dashboard-page" class="page">
                 <div class="card p-4 sm:p-6">
-                    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                        <h2 class="text-2xl font-semibold text-pink-700">Crear Nuevo Pedido</h2>
-                        <input type="search" id="search-input" placeholder="Buscar artículo..." class="search-bar">
+                    <!-- PANEL SUPERIOR FIJO -->
+                    <div class="dashboard-header">
+                        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                            <h2 class="text-2xl font-semibold text-pink-700">Crear Nuevo Pedido</h2>
+                            <input type="search" id="search-input" placeholder="Buscar artículo..." class="search-bar">
+                        </div>
+                        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <div class="text-right w-full sm:w-auto">
+                                <span class="text-lg font-medium text-gray-600">Total Final:</span>
+                                <span id="final-total" class="text-3xl font-bold text-pink-800 ml-2">$0.00</span>
+                            </div>
+                            <button id="close-order-btn" class="btn-primary w-full sm:w-auto">Cerrar Pedido</button>
+                        </div>
                     </div>
-                    <div class="overflow-x-auto">
+                    
+                    <!-- LISTA DE ARTÍCULOS (SCROLLABLE) -->
+                    <div class="overflow-x-auto pt-4">
                         <table class="w-full text-left" id="dashboard-table">
                             <thead class="bg-pink-50 text-pink-600">
                                 <tr>
@@ -53,13 +65,6 @@
                                 <!-- Los artículos se cargarán aquí dinámicamente -->
                             </tbody>
                         </table>
-                    </div>
-                    <div class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <div class="text-right w-full sm:w-auto">
-                            <span class="text-lg font-medium text-gray-600">Total Final:</span>
-                            <span id="final-total" class="text-3xl font-bold text-pink-800 ml-2">$0.00</span>
-                        </div>
-                        <button id="close-order-btn" class="btn-primary w-full sm:w-auto">Cerrar Pedido</button>
                     </div>
                 </div>
             </section>
