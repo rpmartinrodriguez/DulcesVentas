@@ -1,0 +1,111 @@
+/* Estilos personalizados para complementar Tailwind */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #FFFBFB; /* Un fondo rosa muy pálido */
+}
+
+/* Estilos de la navegación */
+.nav-link {
+    padding-bottom: 8px;
+    font-weight: 500;
+    color: #881337; /* Rosa oscuro para texto */
+    transition: all 0.3s ease;
+    border-bottom: 2px solid transparent;
+}
+
+.nav-link:hover {
+    color: #E11D48; /* Rosa intenso al pasar el mouse */
+}
+
+.nav-link.active {
+    color: #E11D48;
+    font-weight: 600;
+    border-bottom-color: #E11D48;
+}
+
+/* Estilo de los botones principales */
+.btn-primary {
+    background-color: #F472B6; /* Rosa viejo */
+    color: white;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 10px 20px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background-color: #EC4899; /* Un rosa más intenso */
+    transform: translateY(-2px);
+}
+
+.btn-primary:disabled {
+    background-color: #FBCFE8; /* Rosa pálido para estado deshabilitado */
+    cursor: not-allowed;
+    transform: none;
+}
+
+
+/* Estilo de los botones de eliminar */
+.btn-delete {
+    background-color: #FEE2E2; /* Fondo rojo pálido */
+    color: #991B1B; /* Texto rojo oscuro */
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-delete:hover {
+    background-color: #FECACA;
+    color: #7F1D1D;
+}
+
+
+/* Estilo de las tarjetas contenedoras */
+.card {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    border: 1px solid #FCE7F3; /* Borde rosa pálido */
+}
+
+/* Clases para ocultar y mostrar páginas */
+.hidden {
+    display: none;
+}
+
+/* Estilos para los inputs */
+input[type="text"], input[type="number"] {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input[type="text"]:focus, input[type="number"]:focus {
+     border-color: #EC4899;
+     box-shadow: 0 0 0 3px #FBCFE8;
+     outline: none;
+}
+
+/* Estilos para la tabla del dashboard */
+#dashboard-articles-table input[type="number"] {
+    width: 70px;
+    text-align: center;
+    border: 1px solid #FBCFE8;
+    border-radius: 6px;
+    padding: 4px 8px;
+}
+
+#dashboard-articles-table input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 4px;
+    color: #EC4899;
+    border-color: #F472B6;
+}
+
+#dashboard-articles-table input[type="checkbox"]:focus {
+    ring: #F472B6;
+}
