@@ -1,31 +1,31 @@
-/* Estilos personalizados para complementar Tailwind */
+/* Estilos base y paleta de colores rosa */
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #FFFBFB; /* Un fondo rosa muy pálido */
+    background-color: #FFF5F7; /* Fondo rosa muy, muy pálido */
 }
 
 /* Estilos de la navegación */
 .nav-link {
     padding-bottom: 8px;
     font-weight: 500;
-    color: #881337; /* Rosa oscuro para texto */
+    color: #9D174D; /* Texto rosa oscuro */
     transition: all 0.3s ease;
     border-bottom: 2px solid transparent;
 }
 
 .nav-link:hover {
-    color: #E11D48; /* Rosa intenso al pasar el mouse */
+    color: #DB2777; /* Rosa vibrante al pasar el mouse */
 }
 
 .nav-link.active {
-    color: #E11D48;
+    color: #DB2777;
     font-weight: 600;
-    border-bottom-color: #E11D48;
+    border-bottom-color: #DB2777;
 }
 
 /* Estilo de los botones principales */
 .btn-primary {
-    background-color: #F472B6; /* Rosa viejo */
+    background-color: #EC4899; /* Rosa principal */
     color: white;
     font-weight: 600;
     border-radius: 8px;
@@ -37,7 +37,7 @@ body {
 }
 
 .btn-primary:hover {
-    background-color: #EC4899; /* Un rosa más intenso */
+    background-color: #DB2777; /* Rosa más oscuro al pasar el mouse */
     transform: translateY(-2px);
 }
 
@@ -47,11 +47,10 @@ body {
     transform: none;
 }
 
-
 /* Estilo de los botones de eliminar */
 .btn-delete {
-    background-color: #FEE2E2; /* Fondo rojo pálido */
-    color: #991B1B; /* Texto rojo oscuro */
+    background-color: #FFF1F2; /* Fondo rosa pálido */
+    color: #BE185D; /* Texto rosa oscuro */
     border-radius: 6px;
     padding: 6px 10px;
     font-size: 0.875rem;
@@ -60,10 +59,9 @@ body {
 }
 
 .btn-delete:hover {
-    background-color: #FECACA;
-    color: #7F1D1D;
+    background-color: #FFE4E6;
+    color: #9D174D;
 }
-
 
 /* Estilo de las tarjetas contenedoras */
 .card {
@@ -79,33 +77,96 @@ body {
 }
 
 /* Estilos para los inputs */
-input[type="text"], input[type="number"] {
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
 input[type="text"]:focus, input[type="number"]:focus {
      border-color: #EC4899;
      box-shadow: 0 0 0 3px #FBCFE8;
      outline: none;
 }
 
-/* Estilos para la tabla del dashboard */
-#dashboard-articles-table input[type="number"] {
-    width: 70px;
+/* --- ESTILOS RESPONSIVOS PARA EL DASHBOARD --- */
+
+/* Estilos para pantallas de celular (hasta 768px) */
+@media (max-width: 768px) {
+    /* Ocultamos la cabecera de la tabla */
+    #dashboard-table thead {
+        display: none;
+    }
+
+    /* Cada fila se convierte en un bloque (tarjeta) */
+    #dashboard-table tr {
+        display: block;
+        border: 1px solid #FBCFE8;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background-color: #FFF1F2;
+    }
+
+    /* Cada celda se convierte en un bloque con espacio */
+    #dashboard-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #FCE7F3;
+    }
+    
+    #dashboard-table tr td:last-child {
+        border-bottom: none;
+    }
+
+    /* Usamos pseudo-elementos para añadir las etiquetas a cada celda */
+    #dashboard-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #9D174D;
+    }
+    
+    /* Ajustes específicos para cada celda */
+    #dashboard-table td:nth-of-type(1)::before { content: "Seleccionar:"; }
+    #dashboard-table td:nth-of-type(2) { font-size: 1.1rem; font-weight: bold; color: #BE185D; }
+    #dashboard-table td:nth-of-type(2)::before { content: "Artículo:"; }
+    #dashboard-table td:nth-of-type(3)::before { content: "Precio Unitario:"; }
+    #dashboard-table td:nth-of-type(4)::before { content: "Cantidad:"; }
+    #dashboard-table td:nth-of-type(5) { font-size: 1.2rem; font-weight: bold; }
+    #dashboard-table td:nth-of-type(5)::before { content: "Total Artículo:"; }
+
+    #dashboard-articles-table input[type="checkbox"] {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+    #dashboard-articles-table input[type="number"] {
+        width: 80px;
+        padding: 8px;
+        font-size: 1rem;
+    }
+}
+
+/* Estilos para la notificación */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease, bottom 0.3s ease;
+    z-index: 1000;
     text-align: center;
-    border: 1px solid #FBCFE8;
-    border-radius: 6px;
-    padding: 4px 8px;
+    width: calc(100% - 40px);
+    max-width: 400px;
 }
 
-#dashboard-articles-table input[type="checkbox"] {
-    width: 1.25rem;
-    height: 1.25rem;
-    border-radius: 4px;
-    color: #EC4899;
-    border-color: #F472B6;
+.notification.show {
+    opacity: 1;
+    visibility: visible;
+    bottom: 40px;
 }
 
-#dashboard-articles-table input[type="checkbox"]:focus {
-    ring: #F472B6;
-}
+.notification.success { background-color: #22c55e; }
+.notification.error { background-color: #ef4444; }
