@@ -37,7 +37,7 @@ const closeModalBtn = document.getElementById('close-modal-btn');
 const editArticleForm = document.getElementById('edit-article-form');
 
 let currentArticles = []; 
-let dashboardState = {}; // Almacena el estado de selecciones y cantidades
+let dashboardState = {};
 
 // --- LÓGICA DE NOTIFICACIÓN ---
 let notificationTimer;
@@ -69,12 +69,11 @@ onSnapshot(articlesCollection, (snapshot) => {
         articles.push({ id: doc.id, ...doc.data() });
     });
     currentArticles = articles;
-    initializeDashboardState(); // Prepara el estado del dashboard
+    initializeDashboardState();
     renderArticles(articles);
     filterAndRenderDashboard();
 });
 
-// Inicializa o actualiza el objeto de estado para que coincida con los artículos
 function initializeDashboardState() {
     const newState = {};
     currentArticles.forEach(article => {
@@ -99,7 +98,10 @@ function renderArticles(articles) {
         articleEl.innerHTML = `
             <div>
                 <p class="font-semibold text-pink-800">${article.name}</p>
-                <p class="text-sm text-gray-600">$${parseFloat(article.price).toFixed(2)}</p>
+                <p class="text-sm text-gray-600">
+                    Costo: $${parseFloat(article.costPrice || 0).toFixed(2)} / 
+                    Venta: <span class="font-bold">$${parseFloat(article.salePrice).toFixed(2)}</span>
+                </p>
             </div>
             <div class="flex gap-2">
                 <button class="btn-edit" data-id="${article.id}">Editar</button>
@@ -113,10 +115,16 @@ function renderArticles(articles) {
 addArticleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = addArticleForm['article-name'].value;
-    const price = addArticleForm['article-price'].value;
-    if (name && price) {
+    const costPrice = addArticleForm['article-cost-price'].value;
+    const salePrice = addArticleForm['article-sale-price'].value;
+
+    if (name && costPrice && salePrice) {
         try {
-            await addDoc(articlesCollection, { name, price: parseFloat(price) });
+            await addDoc(articlesCollection, { 
+                name, 
+                costPrice: parseFloat(costPrice), 
+                salePrice: parseFloat(salePrice) 
+            });
             addArticleForm.reset();
         } catch (error) {
             console.error("Error al agregar el artículo: ", error);
@@ -128,6 +136,7 @@ articlesList.addEventListener('click', async (e) => {
     const target = e.target;
     const id = target.dataset.id;
     if (target.classList.contains('btn-delete')) {
+        // La lógica de eliminar no cambia
         if (confirm('¿Estás seguro de que quieres eliminar este artículo?')) {
             try {
                 await deleteDoc(doc(db, 'articles', id));
@@ -142,7 +151,8 @@ articlesList.addEventListener('click', async (e) => {
         if (articleToEdit) {
             editArticleForm['edit-article-id'].value = articleToEdit.id;
             editArticleForm['edit-article-name'].value = articleToEdit.name;
-            editArticleForm['edit-article-price'].value = articleToEdit.price;
+            editArticleForm['edit-article-cost-price'].value = articleToEdit.costPrice;
+            editArticleForm['edit-article-sale-price'].value = articleToEdit.salePrice;
             editModal.classList.remove('hidden');
         }
     }
@@ -157,10 +167,16 @@ editArticleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = editArticleForm['edit-article-id'].value;
     const newName = editArticleForm['edit-article-name'].value;
-    const newPrice = parseFloat(editArticleForm['edit-article-price'].value);
-    if (id && newName && newPrice) {
+    const newCostPrice = parseFloat(editArticleForm['edit-article-cost-price'].value);
+    const newSalePrice = parseFloat(editArticleForm['edit-article-sale-price'].value);
+    
+    if (id && newName && newCostPrice && newSalePrice) {
         try {
-            await updateDoc(doc(db, 'articles', id), { name: newName, price: newPrice });
+            await updateDoc(doc(db, 'articles', id), { 
+                name: newName, 
+                costPrice: newCostPrice, 
+                salePrice: newSalePrice 
+            });
             showNotification('Artículo actualizado con éxito', 'success');
             editModal.classList.add('hidden');
         } catch (error) {
@@ -169,7 +185,7 @@ editArticleForm.addEventListener('submit', async (e) => {
     }
 });
 
-// --- LÓGICA DEL DASHBOARD Y BÚSQUEDA ---
+// --- LÓGICA DEL DASHBOARD ---
 searchInput.addEventListener('input', filterAndRenderDashboard);
 
 function filterAndRenderDashboard() {
@@ -191,14 +207,14 @@ function renderDashboardTable(articles) {
         const state = dashboardState[article.id] || { selected: false, quantity: 1 };
         const row = document.createElement('tr');
         row.dataset.articleId = article.id;
-        row.dataset.price = article.price;
+        row.dataset.price = article.salePrice; // Usamos el precio de VENTA
         const isChecked = state.selected ? 'checked' : '';
         const isDisabled = !state.selected ? 'disabled' : '';
-        const itemTotal = state.selected ? (article.price * state.quantity).toFixed(2) : '0.00';
+        const itemTotal = state.selected ? (article.salePrice * state.quantity).toFixed(2) : '0.00';
         row.innerHTML = `
             <td data-label="Seleccionar"><input type="checkbox" class="article-select" ${isChecked}></td>
             <td data-label="Artículo" class="font-medium text-pink-900">${article.name}</td>
-            <td data-label="Precio" class="text-gray-600">$${parseFloat(article.price).toFixed(2)}</td>
+            <td data-label="Precio" class="text-gray-600">$${parseFloat(article.salePrice).toFixed(2)}</td>
             <td data-label="Cantidad"><input type="number" value="${state.quantity}" min="1" class="article-quantity border rounded p-1 w-20 text-center" ${isDisabled}></td>
             <td data-label="Total" class="font-semibold text-pink-800 article-total">$${itemTotal}</td>
         `;
@@ -213,7 +229,7 @@ function calculateFinalTotal() {
         if (state.selected) {
             const article = currentArticles.find(a => a.id === articleId);
             if (article) {
-                finalTotal += article.price * state.quantity;
+                finalTotal += article.salePrice * state.quantity;
             }
         }
     }
@@ -223,19 +239,17 @@ function calculateFinalTotal() {
 
 dashboardTableBody.addEventListener('input', (e) => {
     const target = e.target;
-    if (target.classList.contains('article-select') || target.classList.contains('article-quantity')) {
-        const row = target.closest('tr');
-        const articleId = row.dataset.articleId;
-        if (!articleId || !dashboardState[articleId]) return;
+    const row = target.closest('tr');
+    if (!row) return;
+    const articleId = row.dataset.articleId;
 
+    if (articleId && dashboardState[articleId]) {
         const isSelected = row.querySelector('.article-select').checked;
         const quantity = parseInt(row.querySelector('.article-quantity').value);
         
-        // Actualizar el objeto de estado
         dashboardState[articleId].selected = isSelected;
         dashboardState[articleId].quantity = quantity || 1;
 
-        // Actualizar la UI de la fila
         row.querySelector('.article-quantity').disabled = !isSelected;
         if (isSelected) {
             const price = parseFloat(row.dataset.price);
@@ -256,9 +270,14 @@ closeOrderBtn.addEventListener('click', async () => {
         if (state.selected) {
             const article = currentArticles.find(a => a.id === articleId);
             if (article) {
-                const total = article.price * state.quantity;
+                const total = article.salePrice * state.quantity;
                 items.push({
-                    articleId: article.id, name: article.name, price: article.price, quantity: state.quantity, total
+                    articleId: article.id, 
+                    name: article.name, 
+                    costPrice: article.costPrice, 
+                    salePrice: article.salePrice, 
+                    quantity: state.quantity, 
+                    total
                 });
                 totalSale += total;
             }
@@ -320,17 +339,28 @@ function renderSales(sales) {
 
 function renderSalesSummary(sales) {
     const grandTotal = sales.reduce((sum, sale) => sum + sale.total, 0);
+    let totalProfit = 0;
+
     const productSummary = {};
     sales.forEach(sale => {
         sale.items.forEach(item => {
             productSummary[item.name] = (productSummary[item.name] || 0) + item.quantity;
+            // Calcular ganancia
+            const cost = item.costPrice || 0; // Si no hay costo, se asume 0
+            const profit = (item.salePrice - cost) * item.quantity;
+            totalProfit += profit;
         });
     });
+    
     let summaryHtml = `
         <h2 class="text-2xl font-semibold text-pink-700 mb-4">Resumen General</h2>
-        <div class="mb-6">
+        <div class="mb-4">
             <p class="text-lg text-gray-600">Total Vendido</p>
             <p class="text-4xl font-bold text-pink-800">$${grandTotal.toFixed(2)}</p>
+        </div>
+        <div class="mb-6">
+            <p class="text-lg text-gray-600">Ganancia Total</p>
+            <p class="text-4xl font-bold text-green-600">$${totalProfit.toFixed(2)}</p>
         </div>
         <h3 class="text-xl font-semibold text-pink-700 mb-3 border-t border-pink-200 pt-4">Artículos Vendidos</h3>
     `;
