@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Tu configuración de la app web de Firebase (Versión original y correcta)
+// Tu configuración de la app web de Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDQLIN0Cr8QOP0fmAvIwcEKJ_bMA6DSKGg",
   authDomain: "dulcesventa-d39d9.firebaseapp.com",
@@ -102,12 +102,13 @@ function renderArticles(articles) {
     }
     articles.forEach(article => {
         const articleEl = document.createElement('div');
-        const isOutOfStock = article.currentStock <= 0;
+        const currentStock = article.currentStock || 0;
+        const isOutOfStock = currentStock <= 0;
         articleEl.className = `flex justify-between items-center bg-pink-50 p-3 rounded-lg ${isOutOfStock ? 'out-of-stock' : ''}`;
         
-        let stockBadge = `<span class="stock-info">Stock: ${article.currentStock}</span>`;
-        if (article.currentStock > 0 && article.currentStock <= 5) {
-             stockBadge = `<span class="stock-info low-stock">¡Stock bajo!: ${article.currentStock}</span>`;
+        let stockBadge = `<span class="stock-info">Stock: ${currentStock}</span>`;
+        if (currentStock > 0 && currentStock <= 5) {
+             stockBadge = `<span class="stock-info low-stock">¡Stock bajo!: ${currentStock}</span>`;
         } else if (isOutOfStock) {
              stockBadge = `<span class="stock-info out-of-stock-badge">Agotado</span>`;
         }
@@ -137,7 +138,7 @@ addArticleForm.addEventListener('submit', async (e) => {
     const name = addArticleForm['article-name'].value;
     const costPrice = parseFloat(addArticleForm['article-cost-price'].value);
     const salePrice = parseFloat(addArticleForm['article-sale-price'].value);
-    const initialStock = parseInt(addArticleForm['article-initial-stock'].value);
+    const initialStock = parseInt(addArticleForm['article-initial-stock'].value) || 0;
     const stockDate = addArticleForm['article-stock-date'].value;
 
     if (name && !isNaN(costPrice) && !isNaN(salePrice) && !isNaN(initialStock) && initialStock >= 0 && stockDate) {
@@ -194,10 +195,10 @@ editArticleForm.addEventListener('submit', async (e) => {
     const newName = editArticleForm['edit-article-name'].value;
     const newCostPrice = parseFloat(editArticleForm['edit-article-cost-price'].value);
     const newSalePrice = parseFloat(editArticleForm['edit-article-sale-price'].value);
-    const newInitialStock = parseInt(editArticleForm['edit-article-initial-stock'].value);
+    const newInitialStock = parseInt(editArticleForm['edit-article-initial-stock'].value) || 0;
     const newStockDate = editArticleForm['edit-article-stock-date'].value;
     
-    const unitsSold = articleToEdit.initialStock - articleToEdit.currentStock;
+    const unitsSold = (articleToEdit.initialStock || 0) - (articleToEdit.currentStock || 0);
     const newCurrentStock = newInitialStock - unitsSold;
     
     if (id && newName && !isNaN(newCostPrice) && !isNaN(newSalePrice) && !isNaN(newInitialStock) && newInitialStock >= 0 && newStockDate) {
@@ -235,7 +236,8 @@ function renderDashboardTable(articles) {
     articles.forEach(article => {
         const state = dashboardState[article.id] || { selected: false, quantity: 1 };
         const row = document.createElement('tr');
-        const isOutOfStock = article.currentStock <= 0;
+        const currentStock = article.currentStock || 0;
+        const isOutOfStock = currentStock <= 0;
 
         row.dataset.articleId = article.id;
         row.dataset.price = article.salePrice;
@@ -251,7 +253,7 @@ function renderDashboardTable(articles) {
             <td data-label="Seleccionar"><input type="checkbox" class="article-select" ${isChecked} ${isOutOfStock ? 'disabled' : ''}></td>
             <td data-label="Artículo" class="font-medium text-pink-900">${article.name} ${isOutOfStock ? '(Agotado)' : ''}</td>
             <td data-label="Precio" class="text-gray-600">$${parseFloat(article.salePrice).toFixed(2)}</td>
-            <td data-label="Cantidad"><input type="number" value="${state.quantity}" min="1" max="${article.currentStock}" class="article-quantity border rounded p-1 w-20 text-center" ${isDisabled}></td>
+            <td data-label="Cantidad"><input type="number" value="${state.quantity}" min="1" max="${currentStock}" class="article-quantity border rounded p-1 w-20 text-center" ${isDisabled}></td>
             <td data-label="Total" class="font-semibold text-pink-800 article-total">$${itemTotal}</td>
         `;
         dashboardTableBody.appendChild(row);
@@ -264,7 +266,7 @@ function calculateFinalTotal() {
         const state = dashboardState[articleId];
         if (state.selected) {
             const article = currentArticles.find(a => a.id === articleId);
-            if (article && article.currentStock > 0) {
+            if (article && (article.currentStock || 0) > 0) {
                 finalTotal += article.salePrice * state.quantity;
             }
         }
@@ -284,10 +286,11 @@ dashboardTableBody.addEventListener('input', (e) => {
         const quantityInput = row.querySelector('.article-quantity');
         let quantity = parseInt(quantityInput.value);
         
-        if (quantity > article.currentStock) {
-            quantity = article.currentStock;
+        const currentStock = article.currentStock || 0;
+        if (quantity > currentStock) {
+            quantity = currentStock;
             quantityInput.value = quantity;
-            showNotification(`Stock máximo para ${article.name} es ${article.currentStock}`, 'error');
+            showNotification(`Stock máximo para ${article.name} es ${currentStock}`, 'error');
         }
         
         dashboardState[articleId].selected = isSelected;
@@ -309,8 +312,9 @@ closeOrderBtn.addEventListener('click', async () => {
     Object.keys(dashboardState).forEach(articleId => {
         const state = dashboardState[articleId];
         const article = currentArticles.find(a => a.id === articleId);
-        if (state.selected && article && article.currentStock > 0) {
-            const quantityToSell = Math.min(state.quantity, article.currentStock);
+        const currentStock = article.currentStock || 0;
+        if (state.selected && article && currentStock > 0) {
+            const quantityToSell = Math.min(state.quantity, currentStock);
             if (quantityToSell > 0) {
                 const total = article.salePrice * quantityToSell;
                 items.push({
@@ -507,11 +511,31 @@ function renderStatusPage(sales, articles) {
     document.getElementById('status-total-costs').textContent = `-$${totalCosts.toFixed(2)}`;
     document.getElementById('status-gross-profit').textContent = `$${grossProfit.toFixed(2)}`;
     
+    // *** LÓGICA ACTUALIZADA PARA STOCK DETALLADO ***
+    const remainingStockListEl = document.getElementById('status-remaining-stock-list');
     let remainingStockValue = 0;
-    articles.forEach(article => {
-        remainingStockValue += (article.currentStock || 0) * (article.costPrice || 0);
-    });
+    let stockListHtml = '';
+    
+    const articlesInStock = articles.filter(article => (article.currentStock || 0) > 0);
+
+    if (articlesInStock.length === 0) {
+        stockListHtml = '<p class="text-sm text-gray-500">No hay productos en stock.</p>';
+    } else {
+        articlesInStock.forEach(article => {
+            const currentStock = article.currentStock || 0;
+            remainingStockValue += currentStock * (article.costPrice || 0);
+            stockListHtml += `
+                <div class="stock-list-item">
+                    <span class="stock-item-name">${article.name}</span>
+                    <span class="stock-item-quantity">${currentStock} u.</span>
+                </div>
+            `;
+        });
+    }
+
+    remainingStockListEl.innerHTML = stockListHtml;
     document.getElementById('status-remaining-stock-value').textContent = `$${remainingStockValue.toFixed(2)}`;
+
 
     updatePaymentJustification(totalSales);
 }
