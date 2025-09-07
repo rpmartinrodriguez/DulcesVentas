@@ -24,9 +24,10 @@
         <header class="mb-8">
             <h1 class="text-4xl font-bold text-pink-800 text-center mb-4">Cotizador de Artículos</h1>
             <nav class="flex justify-center space-x-6 sm:space-x-8 border-b border-pink-200 pb-3">
-                <a href="#" class="nav-link active" data-page="dashboard">Principal</a>
+                <a href="#" class="nav-link active" data-page="dashboard">Dashboard</a>
                 <a href="#" class="nav-link" data-page="articles">Artículos</a>
                 <a href="#" class="nav-link" data-page="sales">Ventas</a>
+                <a href="#" class="nav-link" data-page="status">Estado</a>
             </nav>
         </header>
 
@@ -119,6 +120,71 @@
                     </div>
                 </div>
             </section>
+
+            <!-- PÁGINA: ESTADO -->
+            <section id="status-page" class="page hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    
+                    <!-- Balance del Evento -->
+                    <div class="card p-6 lg:col-span-2">
+                        <h2 class="text-2xl font-semibold text-pink-700 mb-4">Balance del Evento</h2>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center text-lg">
+                                <span class="text-gray-600">Monto de Ventas</span>
+                                <span id="status-total-sales" class="font-bold text-pink-800 text-2xl">$0.00</span>
+                            </div>
+                            <div class="flex justify-between items-center text-lg">
+                                <span class="text-gray-600">Monto de Costos</span>
+                                <span id="status-total-costs" class="font-bold text-red-600 text-2xl">-$0.00</span>
+                            </div>
+                            <hr class="my-4 border-pink-200">
+                            <div class="flex justify-between items-center text-xl">
+                                <span class="font-semibold text-gray-700">Utilidad Bruta</span>
+                                <span id="status-gross-profit" class="font-bold text-green-600 text-3xl">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stock Restante -->
+                    <div class="card p-6 md:row-start-2 lg:row-start-1 lg:col-start-3">
+                         <h2 class="text-2xl font-semibold text-pink-700 mb-4">Stock Restante</h2>
+                         <p class="text-lg text-gray-600">Valorizado a Precio de Venta</p>
+                         <p id="status-remaining-stock-value" class="text-4xl font-bold text-blue-600 mt-2">$0.00</p>
+                    </div>
+
+                    <!-- Justificación de la Venta -->
+                    <div class="card p-6 lg:col-span-2">
+                        <h2 class="text-2xl font-semibold text-pink-700 mb-4">Justificación de la Venta</h2>
+                        <div class="space-y-3" id="payment-justification-form">
+                            <div class="flex items-center justify-between">
+                                <label for="payment-cash" class="text-gray-600">Dinero en Efectivo</label>
+                                <input type="number" id="payment-cash" step="0.01" min="0" placeholder="0.00" class="w-32 text-right">
+                            </div>
+                             <div class="flex items-center justify-between">
+                                <label for="payment-mp" class="text-gray-600">Dinero en MercadoPago</label>
+                                <input type="number" id="payment-mp" step="0.01" min="0" placeholder="0.00" class="w-32 text-right">
+                            </div>
+                             <div class="flex items-center justify-between">
+                                <label for="payment-brubank" class="text-gray-600">Dinero en Brubank</label>
+                                <input type="number" id="payment-brubank" step="0.01" min="0" placeholder="0.00" class="w-32 text-right">
+                            </div>
+                        </div>
+                        <hr class="my-4 border-pink-200">
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center font-semibold">
+                                <span class="text-gray-700">Suma Justificada</span>
+                                <span id="status-payment-sum">$0.00</span>
+                            </div>
+                            <div class="flex justify-between items-center font-bold text-lg">
+                                <span class="text-gray-800">Diferencia</span>
+                                <span id="status-payment-difference" class="unbalanced">-$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
         </main>
     </div>
 
