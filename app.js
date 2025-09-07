@@ -102,7 +102,8 @@ function renderArticles(articles) {
     }
     articles.forEach(article => {
         const articleEl = document.createElement('div');
-        const currentStock = article.currentStock || 0;
+        // *** CORRECCIÓN AQUÍ: Nos aseguramos de que el stock sea un número válido. ***
+        const currentStock = Number(article.currentStock) || 0;
         const isOutOfStock = currentStock <= 0;
         articleEl.className = `flex justify-between items-center bg-pink-50 p-3 rounded-lg ${isOutOfStock ? 'out-of-stock' : ''}`;
         
@@ -198,7 +199,11 @@ editArticleForm.addEventListener('submit', async (e) => {
     const newInitialStock = parseInt(editArticleForm['edit-article-initial-stock'].value) || 0;
     const newStockDate = editArticleForm['edit-article-stock-date'].value;
     
-    const unitsSold = (articleToEdit.initialStock || 0) - (articleToEdit.currentStock || 0);
+    // *** CORRECCIÓN AQUÍ: Nos aseguramos de que los valores leídos sean números. ***
+    const initialStockBeforeEdit = Number(articleToEdit.initialStock) || 0;
+    const currentStockBeforeEdit = Number(articleToEdit.currentStock) || 0;
+    
+    const unitsSold = initialStockBeforeEdit - currentStockBeforeEdit;
     const newCurrentStock = newInitialStock - unitsSold;
     
     if (id && newName && !isNaN(newCostPrice) && !isNaN(newSalePrice) && !isNaN(newInitialStock) && newInitialStock >= 0 && newStockDate) {
@@ -236,7 +241,7 @@ function renderDashboardTable(articles) {
     articles.forEach(article => {
         const state = dashboardState[article.id] || { selected: false, quantity: 1 };
         const row = document.createElement('tr');
-        const currentStock = article.currentStock || 0;
+        const currentStock = Number(article.currentStock) || 0;
         const isOutOfStock = currentStock <= 0;
 
         row.dataset.articleId = article.id;
@@ -266,7 +271,7 @@ function calculateFinalTotal() {
         const state = dashboardState[articleId];
         if (state.selected) {
             const article = currentArticles.find(a => a.id === articleId);
-            if (article && (article.currentStock || 0) > 0) {
+            if (article && (Number(article.currentStock) || 0) > 0) {
                 finalTotal += article.salePrice * state.quantity;
             }
         }
@@ -286,7 +291,7 @@ dashboardTableBody.addEventListener('input', (e) => {
         const quantityInput = row.querySelector('.article-quantity');
         let quantity = parseInt(quantityInput.value);
         
-        const currentStock = article.currentStock || 0;
+        const currentStock = Number(article.currentStock) || 0;
         if (quantity > currentStock) {
             quantity = currentStock;
             quantityInput.value = quantity;
@@ -312,7 +317,7 @@ closeOrderBtn.addEventListener('click', async () => {
     Object.keys(dashboardState).forEach(articleId => {
         const state = dashboardState[articleId];
         const article = currentArticles.find(a => a.id === articleId);
-        const currentStock = article.currentStock || 0;
+        const currentStock = Number(article.currentStock) || 0;
         if (state.selected && article && currentStock > 0) {
             const quantityToSell = Math.min(state.quantity, currentStock);
             if (quantityToSell > 0) {
@@ -511,18 +516,17 @@ function renderStatusPage(sales, articles) {
     document.getElementById('status-total-costs').textContent = `-$${totalCosts.toFixed(2)}`;
     document.getElementById('status-gross-profit').textContent = `$${grossProfit.toFixed(2)}`;
     
-    // *** LÓGICA ACTUALIZADA PARA STOCK DETALLADO ***
     const remainingStockListEl = document.getElementById('status-remaining-stock-list');
     let remainingStockValue = 0;
     let stockListHtml = '';
     
-    const articlesInStock = articles.filter(article => (article.currentStock || 0) > 0);
+    const articlesInStock = articles.filter(article => (Number(article.currentStock) || 0) > 0);
 
     if (articlesInStock.length === 0) {
         stockListHtml = '<p class="text-sm text-gray-500">No hay productos en stock.</p>';
     } else {
         articlesInStock.forEach(article => {
-            const currentStock = article.currentStock || 0;
+            const currentStock = Number(article.currentStock) || 0;
             remainingStockValue += currentStock * (article.costPrice || 0);
             stockListHtml += `
                 <div class="stock-list-item">
@@ -535,7 +539,6 @@ function renderStatusPage(sales, articles) {
 
     remainingStockListEl.innerHTML = stockListHtml;
     document.getElementById('status-remaining-stock-value').textContent = `$${remainingStockValue.toFixed(2)}`;
-
 
     updatePaymentJustification(totalSales);
 }
