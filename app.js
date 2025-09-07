@@ -136,8 +136,6 @@ addArticleForm.addEventListener('submit', async (e) => {
     const initialStock = parseInt(addArticleForm['article-initial-stock'].value);
     const stockDate = addArticleForm['article-stock-date'].value;
 
-    // *** CORRECCIÓN AQUÍ ***
-    // Se añade !isNaN() para asegurar que los valores son números válidos antes de guardar.
     if (name && !isNaN(costPrice) && !isNaN(salePrice) && !isNaN(initialStock) && initialStock >= 0 && stockDate) {
         await addDoc(articlesCollection, { 
             name, 
@@ -195,7 +193,6 @@ editArticleForm.addEventListener('submit', async (e) => {
     const newInitialStock = parseInt(editArticleForm['edit-article-initial-stock'].value);
     const newStockDate = editArticleForm['edit-article-stock-date'].value;
     
-    // Calcular el nuevo stock actual preservando las ventas ya hechas
     const unitsSold = articleToEdit.initialStock - articleToEdit.currentStock;
     const newCurrentStock = newInitialStock - unitsSold;
     
@@ -433,9 +430,11 @@ function renderStatusPage(sales, articles) {
     document.getElementById('status-total-costs').textContent = `-$${totalCosts.toFixed(2)}`;
     document.getElementById('status-gross-profit').textContent = `$${grossProfit.toFixed(2)}`;
 
+    // *** CORRECCIÓN DE CÁLCULO AQUÍ ***
+    // Se cambia article.salePrice por article.costPrice
     let remainingStockValue = 0;
     articles.forEach(article => {
-        remainingStockValue += (article.currentStock || 0) * (article.salePrice || 0);
+        remainingStockValue += (article.currentStock || 0) * (article.costPrice || 0);
     });
     document.getElementById('status-remaining-stock-value').textContent = `$${remainingStockValue.toFixed(2)}`;
 
