@@ -102,7 +102,6 @@ function renderArticles(articles) {
     }
     articles.forEach(article => {
         const articleEl = document.createElement('div');
-        // *** CORRECCIÓN AQUÍ: Nos aseguramos de que el stock sea un número válido. ***
         const currentStock = Number(article.currentStock) || 0;
         const isOutOfStock = currentStock <= 0;
         articleEl.className = `flex justify-between items-center bg-pink-50 p-3 rounded-lg ${isOutOfStock ? 'out-of-stock' : ''}`;
@@ -199,7 +198,7 @@ editArticleForm.addEventListener('submit', async (e) => {
     const newInitialStock = parseInt(editArticleForm['edit-article-initial-stock'].value) || 0;
     const newStockDate = editArticleForm['edit-article-stock-date'].value;
     
-    // *** CORRECCIÓN AQUÍ: Nos aseguramos de que los valores leídos sean números. ***
+    // *** CORRECCIÓN CRÍTICA AQUÍ: Se asegura que los valores leídos sean números antes de calcular. ***
     const initialStockBeforeEdit = Number(articleToEdit.initialStock) || 0;
     const currentStockBeforeEdit = Number(articleToEdit.currentStock) || 0;
     
