@@ -136,16 +136,21 @@ addArticleForm.addEventListener('submit', async (e) => {
     const initialStock = parseInt(addArticleForm['article-initial-stock'].value);
     const stockDate = addArticleForm['article-stock-date'].value;
 
-    if (name && costPrice && salePrice && initialStock >= 0 && stockDate) {
+    // *** CORRECCIÓN AQUÍ ***
+    // Se añade !isNaN() para asegurar que los valores son números válidos antes de guardar.
+    if (name && !isNaN(costPrice) && !isNaN(salePrice) && !isNaN(initialStock) && initialStock >= 0 && stockDate) {
         await addDoc(articlesCollection, { 
             name, 
             costPrice, 
             salePrice, 
             initialStock,
-            currentStock: initialStock, // El stock actual es igual al inicial al crear
+            currentStock: initialStock,
             stockDate 
         });
         addArticleForm.reset();
+        showNotification('Artículo agregado con éxito.', 'success');
+    } else {
+        showNotification('Por favor, completa todos los campos correctamente.', 'error');
     }
 });
 
@@ -194,7 +199,7 @@ editArticleForm.addEventListener('submit', async (e) => {
     const unitsSold = articleToEdit.initialStock - articleToEdit.currentStock;
     const newCurrentStock = newInitialStock - unitsSold;
     
-    if (id && newName && !isNaN(newCostPrice) && !isNaN(newSalePrice) && newInitialStock >= 0 && newStockDate) {
+    if (id && newName && !isNaN(newCostPrice) && !isNaN(newSalePrice) && !isNaN(newInitialStock) && newInitialStock >= 0 && newStockDate) {
         await updateDoc(doc(db, 'articles', id), { 
             name: newName, 
             costPrice: newCostPrice, 
@@ -205,6 +210,8 @@ editArticleForm.addEventListener('submit', async (e) => {
         });
         showNotification('Artículo actualizado con éxito', 'success');
         editModal.classList.add('hidden');
+    } else {
+        showNotification('Por favor, completa todos los campos correctamente.', 'error');
     }
 });
 
@@ -276,8 +283,7 @@ dashboardTableBody.addEventListener('input', (e) => {
         const quantityInput = row.querySelector('.article-quantity');
         let quantity = parseInt(quantityInput.value);
         
-        // Validar que la cantidad no exceda el stock
-        if(quantity > article.currentStock) {
+        if (quantity > article.currentStock) {
             quantity = article.currentStock;
             quantityInput.value = quantity;
             showNotification(`Stock máximo para ${article.name} es ${article.currentStock}`, 'error');
@@ -298,12 +304,12 @@ dashboardTableBody.addEventListener('input', (e) => {
 closeOrderBtn.addEventListener('click', async () => {
     const items = [];
     let totalSale = 0;
-    const updates = []; // Array para guardar las promesas de actualización
+    const updates = [];
     Object.keys(dashboardState).forEach(articleId => {
         const state = dashboardState[articleId];
         const article = currentArticles.find(a => a.id === articleId);
         if (state.selected && article && article.currentStock > 0) {
-            const quantityToSell = Math.min(state.quantity, article.currentStock); // Doble chequeo
+            const quantityToSell = Math.min(state.quantity, article.currentStock);
             if (quantityToSell > 0) {
                 const total = article.salePrice * quantityToSell;
                 items.push({
@@ -327,7 +333,6 @@ closeOrderBtn.addEventListener('click', async () => {
     }
 });
 
-
 // --- LÓGICA DE VENTAS ---
 onSnapshot(salesCollection, (snapshot) => {
     const sales = [];
@@ -335,7 +340,7 @@ onSnapshot(salesCollection, (snapshot) => {
     currentSales = sales.sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate());
     renderSales(currentSales);
     renderSalesSummary(currentSales);
-    renderStatusPage(currentSales, currentArticles); // Actualizar estado si cambian las ventas
+    renderStatusPage(currentSales, currentArticles);
 });
 
 function renderSales(sales) {
@@ -414,7 +419,6 @@ function renderSalesSummary(sales) {
 
 // --- LÓGICA DE PÁGINA DE ESTADO ---
 function renderStatusPage(sales, articles) {
-    // 1. Calcular Balance
     let totalSales = 0;
     let totalCosts = 0;
     sales.forEach(sale => {
@@ -429,14 +433,12 @@ function renderStatusPage(sales, articles) {
     document.getElementById('status-total-costs').textContent = `-$${totalCosts.toFixed(2)}`;
     document.getElementById('status-gross-profit').textContent = `$${grossProfit.toFixed(2)}`;
 
-    // 2. Calcular Stock Restante Valorizado
     let remainingStockValue = 0;
     articles.forEach(article => {
         remainingStockValue += (article.currentStock || 0) * (article.salePrice || 0);
     });
     document.getElementById('status-remaining-stock-value').textContent = `$${remainingStockValue.toFixed(2)}`;
 
-    // 3. Lógica de Justificación (se dispara con el input)
     updatePaymentJustification(totalSales);
 }
 
@@ -454,7 +456,7 @@ function updatePaymentJustification(totalSales) {
     sumEl.textContent = `$${paymentSum.toFixed(2)}`;
     diffEl.textContent = `${difference >= 0 ? '+' : '-'}$${Math.abs(difference).toFixed(2)}`;
 
-    if (Math.abs(difference) < 0.01) { // Usar una tolerancia pequeña para flotantes
+    if (Math.abs(difference) < 0.01) {
         diffEl.className = 'balanced';
     } else {
         diffEl.className = 'unbalanced';
@@ -462,7 +464,6 @@ function updatePaymentJustification(totalSales) {
 }
 
 paymentJustificationForm.addEventListener('input', () => {
-    // Recalcular con el total de ventas actual
     const totalSales = currentSales.reduce((sum, sale) => sum + sale.total, 0);
     updatePaymentJustification(totalSales);
 });
