@@ -1,6 +1,6 @@
 // Importa las funciones que necesitas de los SDKs de Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Tu configuración de la app web de Firebase
 const firebaseConfig = {
@@ -32,6 +32,8 @@ const salesHistoryEl = document.getElementById('sales-history');
 const notificationEl = document.getElementById('notification');
 const salesSummaryCard = document.getElementById('sales-summary-card');
 const searchInput = document.getElementById('search-input');
+
+// Selectores del Modal de Edición
 const editModal = document.getElementById('edit-modal');
 const closeModalBtn = document.getElementById('close-modal-btn');
 const editArticleForm = document.getElementById('edit-article-form');
@@ -77,11 +79,7 @@ onSnapshot(articlesCollection, (snapshot) => {
 function initializeDashboardState() {
     const newState = {};
     currentArticles.forEach(article => {
-        if (dashboardState[article.id]) {
-            newState[article.id] = dashboardState[article.id];
-        } else {
-            newState[article.id] = { selected: false, quantity: 1 };
-        }
+        newState[article.id] = dashboardState[article.id] || { selected: false, quantity: 1 };
     });
     dashboardState = newState;
 }
@@ -94,11 +92,23 @@ function renderArticles(articles) {
     }
     articles.forEach(article => {
         const articleEl = document.createElement('div');
-        articleEl.className = 'flex justify-between items-center bg-pink-50 p-3 rounded-lg';
+        const isOutOfStock = article.currentStock <= 0;
+        articleEl.className = `flex justify-between items-center bg-pink-50 p-3 rounded-lg ${isOutOfStock ? 'out-of-stock' : ''}`;
+        
+        let stockBadge = `<span class="stock-info">Stock: ${article.currentStock}</span>`;
+        if (article.currentStock > 0 && article.currentStock <= 5) {
+             stockBadge = `<span class="stock-info low-stock">¡Stock bajo!: ${article.currentStock}</span>`;
+        } else if (isOutOfStock) {
+             stockBadge = `<span class="stock-info out-of-stock-badge">Agotado</span>`;
+        }
+
         articleEl.innerHTML = `
-            <div>
-                <p class="font-semibold text-pink-800">${article.name}</p>
-                <p class="text-sm text-gray-600">
+            <div class="flex-grow">
+                <div class="flex items-center gap-3">
+                     <p class="font-semibold text-pink-800">${article.name}</p>
+                     ${stockBadge}
+                </div>
+                <p class="text-sm text-gray-600 mt-1">
                     Costo: $${parseFloat(article.costPrice || 0).toFixed(2)} / 
                     Venta: <span class="font-bold">$${parseFloat(article.salePrice).toFixed(2)}</span>
                 </p>
@@ -115,20 +125,21 @@ function renderArticles(articles) {
 addArticleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = addArticleForm['article-name'].value;
-    const costPrice = addArticleForm['article-cost-price'].value;
-    const salePrice = addArticleForm['article-sale-price'].value;
+    const costPrice = parseFloat(addArticleForm['article-cost-price'].value);
+    const salePrice = parseFloat(addArticleForm['article-sale-price'].value);
+    const initialStock = parseInt(addArticleForm['article-initial-stock'].value);
+    const stockDate = addArticleForm['article-stock-date'].value;
 
-    if (name && costPrice && salePrice) {
-        try {
-            await addDoc(articlesCollection, { 
-                name, 
-                costPrice: parseFloat(costPrice), 
-                salePrice: parseFloat(salePrice) 
-            });
-            addArticleForm.reset();
-        } catch (error) {
-            console.error("Error al agregar el artículo: ", error);
-        }
+    if (name && costPrice && salePrice && initialStock >= 0 && stockDate) {
+        await addDoc(articlesCollection, { 
+            name, 
+            costPrice, 
+            salePrice, 
+            initialStock,
+            currentStock: initialStock, // El stock actual es igual al inicial al crear
+            stockDate 
+        });
+        addArticleForm.reset();
     }
 });
 
@@ -136,14 +147,9 @@ articlesList.addEventListener('click', async (e) => {
     const target = e.target;
     const id = target.dataset.id;
     if (target.classList.contains('btn-delete')) {
-        // La lógica de eliminar no cambia
         if (confirm('¿Estás seguro de que quieres eliminar este artículo?')) {
-            try {
-                await deleteDoc(doc(db, 'articles', id));
-                showNotification('Artículo eliminado', 'success');
-            } catch (error) {
-                showNotification('Error al eliminar', 'error');
-            }
+            await deleteDoc(doc(db, 'articles', id));
+            showNotification('Artículo eliminado', 'success');
         }
     }
     if (target.classList.contains('btn-edit')) {
@@ -153,6 +159,8 @@ articlesList.addEventListener('click', async (e) => {
             editArticleForm['edit-article-name'].value = articleToEdit.name;
             editArticleForm['edit-article-cost-price'].value = articleToEdit.costPrice;
             editArticleForm['edit-article-sale-price'].value = articleToEdit.salePrice;
+            editArticleForm['edit-article-initial-stock'].value = articleToEdit.initialStock;
+            editArticleForm['edit-article-stock-date'].value = articleToEdit.stockDate;
             editModal.classList.remove('hidden');
         }
     }
@@ -163,25 +171,34 @@ closeModalBtn.addEventListener('click', () => editModal.classList.add('hidden'))
 editModal.addEventListener('click', (e) => {
     if (e.target === editModal) editModal.classList.add('hidden');
 });
+
 editArticleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = editArticleForm['edit-article-id'].value;
+    const articleToEdit = currentArticles.find(article => article.id === id);
+    if (!articleToEdit) return;
+
     const newName = editArticleForm['edit-article-name'].value;
     const newCostPrice = parseFloat(editArticleForm['edit-article-cost-price'].value);
     const newSalePrice = parseFloat(editArticleForm['edit-article-sale-price'].value);
+    const newInitialStock = parseInt(editArticleForm['edit-article-initial-stock'].value);
+    const newStockDate = editArticleForm['edit-article-stock-date'].value;
     
-    if (id && newName && newCostPrice && newSalePrice) {
-        try {
-            await updateDoc(doc(db, 'articles', id), { 
-                name: newName, 
-                costPrice: newCostPrice, 
-                salePrice: newSalePrice 
-            });
-            showNotification('Artículo actualizado con éxito', 'success');
-            editModal.classList.add('hidden');
-        } catch (error) {
-            showNotification('Error al actualizar', 'error');
-        }
+    // Calcular el nuevo stock actual preservando las ventas ya hechas
+    const unitsSold = articleToEdit.initialStock - articleToEdit.currentStock;
+    const newCurrentStock = newInitialStock - unitsSold;
+    
+    if (id && newName && !isNaN(newCostPrice) && !isNaN(newSalePrice) && newInitialStock >= 0 && newStockDate) {
+        await updateDoc(doc(db, 'articles', id), { 
+            name: newName, 
+            costPrice: newCostPrice, 
+            salePrice: newSalePrice,
+            initialStock: newInitialStock,
+            currentStock: newCurrentStock,
+            stockDate: newStockDate
+        });
+        showNotification('Artículo actualizado con éxito', 'success');
+        editModal.classList.add('hidden');
     }
 });
 
@@ -190,9 +207,7 @@ searchInput.addEventListener('input', filterAndRenderDashboard);
 
 function filterAndRenderDashboard() {
     const searchTerm = searchInput.value.toLowerCase();
-    const filteredArticles = currentArticles.filter(article => 
-        article.name.toLowerCase().includes(searchTerm)
-    );
+    const filteredArticles = currentArticles.filter(article => article.name.toLowerCase().includes(searchTerm));
     renderDashboardTable(filteredArticles);
     calculateFinalTotal();
 }
@@ -206,16 +221,23 @@ function renderDashboardTable(articles) {
     articles.forEach(article => {
         const state = dashboardState[article.id] || { selected: false, quantity: 1 };
         const row = document.createElement('tr');
+        const isOutOfStock = article.currentStock <= 0;
+
         row.dataset.articleId = article.id;
-        row.dataset.price = article.salePrice; // Usamos el precio de VENTA
+        row.dataset.price = article.salePrice;
+        if(isOutOfStock) {
+            row.classList.add('out-of-stock');
+        }
+
         const isChecked = state.selected ? 'checked' : '';
-        const isDisabled = !state.selected ? 'disabled' : '';
-        const itemTotal = state.selected ? (article.salePrice * state.quantity).toFixed(2) : '0.00';
+        const isDisabled = !state.selected || isOutOfStock ? 'disabled' : '';
+        const itemTotal = state.selected && !isOutOfStock ? (article.salePrice * state.quantity).toFixed(2) : '0.00';
+        
         row.innerHTML = `
-            <td data-label="Seleccionar"><input type="checkbox" class="article-select" ${isChecked}></td>
-            <td data-label="Artículo" class="font-medium text-pink-900">${article.name}</td>
+            <td data-label="Seleccionar"><input type="checkbox" class="article-select" ${isChecked} ${isOutOfStock ? 'disabled' : ''}></td>
+            <td data-label="Artículo" class="font-medium text-pink-900">${article.name} ${isOutOfStock ? '(Agotado)' : ''}</td>
             <td data-label="Precio" class="text-gray-600">$${parseFloat(article.salePrice).toFixed(2)}</td>
-            <td data-label="Cantidad"><input type="number" value="${state.quantity}" min="1" class="article-quantity border rounded p-1 w-20 text-center" ${isDisabled}></td>
+            <td data-label="Cantidad"><input type="number" value="${state.quantity}" min="1" max="${article.currentStock}" class="article-quantity border rounded p-1 w-20 text-center" ${isDisabled}></td>
             <td data-label="Total" class="font-semibold text-pink-800 article-total">$${itemTotal}</td>
         `;
         dashboardTableBody.appendChild(row);
@@ -224,40 +246,45 @@ function renderDashboardTable(articles) {
 
 function calculateFinalTotal() {
     let finalTotal = 0;
-    for (const articleId in dashboardState) {
+    Object.keys(dashboardState).forEach(articleId => {
         const state = dashboardState[articleId];
         if (state.selected) {
             const article = currentArticles.find(a => a.id === articleId);
-            if (article) {
+            if (article && article.currentStock > 0) {
                 finalTotal += article.salePrice * state.quantity;
             }
         }
-    }
+    });
     finalTotalEl.textContent = `$${finalTotal.toFixed(2)}`;
     closeOrderBtn.disabled = finalTotal === 0;
 }
 
 dashboardTableBody.addEventListener('input', (e) => {
-    const target = e.target;
-    const row = target.closest('tr');
+    const row = e.target.closest('tr');
     if (!row) return;
     const articleId = row.dataset.articleId;
+    const article = currentArticles.find(a => a.id === articleId);
 
     if (articleId && dashboardState[articleId]) {
         const isSelected = row.querySelector('.article-select').checked;
-        const quantity = parseInt(row.querySelector('.article-quantity').value);
+        const quantityInput = row.querySelector('.article-quantity');
+        let quantity = parseInt(quantityInput.value);
+        
+        // Validar que la cantidad no exceda el stock
+        if(quantity > article.currentStock) {
+            quantity = article.currentStock;
+            quantityInput.value = quantity;
+            showNotification(`Stock máximo para ${article.name} es ${article.currentStock}`, 'error');
+        }
         
         dashboardState[articleId].selected = isSelected;
         dashboardState[articleId].quantity = quantity || 1;
 
-        row.querySelector('.article-quantity').disabled = !isSelected;
-        if (isSelected) {
-            const price = parseFloat(row.dataset.price);
-            row.querySelector('.article-total').textContent = `$${(price * dashboardState[articleId].quantity).toFixed(2)}`;
-        } else {
-            row.querySelector('.article-total').textContent = '$0.00';
-        }
-
+        quantityInput.disabled = !isSelected;
+        row.querySelector('.article-total').textContent = isSelected 
+            ? `$${(parseFloat(row.dataset.price) * dashboardState[articleId].quantity).toFixed(2)}`
+            : '$0.00';
+        
         calculateFinalTotal();
     }
 });
@@ -265,39 +292,42 @@ dashboardTableBody.addEventListener('input', (e) => {
 closeOrderBtn.addEventListener('click', async () => {
     const items = [];
     let totalSale = 0;
-    for (const articleId in dashboardState) {
+
+    const updates = []; // Array para guardar las promesas de actualización
+
+    Object.keys(dashboardState).forEach(articleId => {
         const state = dashboardState[articleId];
-        if (state.selected) {
-            const article = currentArticles.find(a => a.id === articleId);
-            if (article) {
-                const total = article.salePrice * state.quantity;
+        const article = currentArticles.find(a => a.id === articleId);
+        if (state.selected && article && article.currentStock > 0) {
+            const quantityToSell = Math.min(state.quantity, article.currentStock); // Doble chequeo
+            if (quantityToSell > 0) {
+                const total = article.salePrice * quantityToSell;
                 items.push({
-                    articleId: article.id, 
-                    name: article.name, 
-                    costPrice: article.costPrice, 
-                    salePrice: article.salePrice, 
-                    quantity: state.quantity, 
-                    total
+                    articleId: article.id, name: article.name, costPrice: article.costPrice, 
+                    salePrice: article.salePrice, quantity: quantityToSell, total
                 });
                 totalSale += total;
+                // Preparamos la actualización del stock
+                const articleRef = doc(db, 'articles', article.id);
+                updates.push(updateDoc(articleRef, { currentStock: increment(-quantityToSell) }));
             }
         }
-    }
+    });
+
     if (items.length > 0) {
-        try {
-            await addDoc(salesCollection, { items, total: totalSale, createdAt: new Date() });
-            showNotification('¡Venta registrada con éxito!', 'success');
-            items.forEach(item => {
-                dashboardState[item.articleId] = { selected: false, quantity: 1 };
-            });
-            filterAndRenderDashboard();
-        } catch (error) {
-            showNotification('Hubo un error al registrar la venta.', 'error');
-        }
+        // Primero registramos la venta
+        await addDoc(salesCollection, { items, total: totalSale, createdAt: new Date() });
+        // Luego, ejecutamos todas las actualizaciones de stock en paralelo
+        await Promise.all(updates);
+
+        showNotification('¡Venta registrada y stock actualizado!', 'success');
+        items.forEach(item => { dashboardState[item.articleId] = { selected: false, quantity: 1 }; });
+        filterAndRenderDashboard();
     } else {
-        showNotification('Debes seleccionar al menos un artículo.', 'error');
+        showNotification('Debes seleccionar al menos un artículo con stock.', 'error');
     }
 });
+
 
 // --- LÓGICA DE VENTAS ---
 onSnapshot(salesCollection, (snapshot) => {
@@ -317,9 +347,7 @@ function renderSales(sales) {
     sales.forEach(sale => {
         const saleCard = document.createElement('div');
         saleCard.className = 'border border-pink-200 rounded-lg p-4';
-        const saleDate = sale.createdAt.toDate().toLocaleString('es-ES', {
-            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-        });
+        const saleDate = sale.createdAt.toDate().toLocaleString('es-ES');
         let itemsHtml = sale.items.map(item => `
             <li class="flex justify-between text-sm">
                 <span>${item.quantity} x ${item.name}</span>
@@ -338,21 +366,43 @@ function renderSales(sales) {
 }
 
 function renderSalesSummary(sales) {
-    const grandTotal = sales.reduce((sum, sale) => sum + sale.total, 0);
+    let grandTotal = 0;
     let totalProfit = 0;
-
     const productSummary = {};
+
     sales.forEach(sale => {
+        grandTotal += sale.total;
         sale.items.forEach(item => {
             productSummary[item.name] = (productSummary[item.name] || 0) + item.quantity;
-            // Calcular ganancia
-            const cost = item.costPrice || 0; // Si no hay costo, se asume 0
-            const profit = (item.salePrice - cost) * item.quantity;
+            const profit = (item.salePrice - (item.costPrice || 0)) * item.quantity;
             totalProfit += profit;
         });
     });
     
-    let summaryHtml = `
+    const topProducts = Object.entries(productSummary)
+        .sort(([, qtyA], [, qtyB]) => qtyB - qtyA)
+        .slice(0, 5);
+        
+    let topProductsHtml = '<h3 class="text-xl font-semibold text-pink-700 mt-6 mb-3 border-t border-pink-200 pt-4">🏆 Productos Estrella</h3>';
+    if (topProducts.length === 0) {
+        topProductsHtml += '<p class="text-sm text-gray-500">No hay suficientes datos de ventas.</p>';
+    } else {
+        const medals = ['🥇', '🥈', '🥉'];
+        topProductsHtml += '<ol class="top-products-list">';
+        topProducts.forEach(([name, quantity], index) => {
+            const rankContent = medals[index] || `<b>#${index + 1}</b>`;
+            topProductsHtml += `
+                <li>
+                    <span class="rank">${rankContent}</span>
+                    <span class="name">${name}</span>
+                    <span class="quantity">${quantity} u.</span>
+                </li>
+            `;
+        });
+        topProductsHtml += '</ol>';
+    }
+
+    salesSummaryCard.innerHTML = `
         <h2 class="text-2xl font-semibold text-pink-700 mb-4">Resumen General</h2>
         <div class="mb-4">
             <p class="text-lg text-gray-600">Total Vendido</p>
@@ -362,23 +412,6 @@ function renderSalesSummary(sales) {
             <p class="text-lg text-gray-600">Ganancia Total</p>
             <p class="text-4xl font-bold text-green-600">$${totalProfit.toFixed(2)}</p>
         </div>
-        <h3 class="text-xl font-semibold text-pink-700 mb-3 border-t border-pink-200 pt-4">Artículos Vendidos</h3>
+        ${topProductsHtml}
     `;
-    const productEntries = Object.entries(productSummary);
-    if (productEntries.length === 0) {
-        summaryHtml += '<p class="text-sm text-gray-500">Aún no se han vendido artículos.</p>';
-    } else {
-        summaryHtml += '<ul class="space-y-2">';
-        productEntries.sort((a, b) => a[0].localeCompare(b[0]));
-        productEntries.forEach(([name, quantity]) => {
-            summaryHtml += `
-                <li class="flex justify-between items-center text-sm bg-pink-50 p-2 rounded">
-                    <span class="font-medium text-pink-900">${name}</span>
-                    <span class="font-bold text-pink-700">${quantity} u.</span>
-                </li>
-            `;
-        });
-        summaryHtml += '</ul>';
-    }
-    salesSummaryCard.innerHTML = summaryHtml;
 }
