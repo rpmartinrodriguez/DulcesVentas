@@ -207,7 +207,7 @@ input[type="text"]:focus, input[type="number"]:focus, input[type="search"]:focus
     list-style: none;
     padding: 0;
     margin-top: 1rem;
-    space-y: 0.5rem; /* Tailwind no lo aplica aquí, así que lo hacemos manual */
+    space-y: 0.5rem; 
 }
 .top-products-list li {
     display: flex;
@@ -217,7 +217,7 @@ input[type="text"]:focus, input[type="number"]:focus, input[type="search"]:focus
     border-radius: 8px;
     font-weight: 500;
 }
-.top-products-list li:nth-child(1) { background-color: #FBCFE8; } /* #1 más oscuro */
+.top-products-list li:nth-child(1) { background-color: #FBCFE8; } 
 .top-products-list li .rank {
     font-size: 1.1rem;
     font-weight: bold;
@@ -240,27 +240,23 @@ input[type="text"]:focus, input[type="number"]:focus, input[type="search"]:focus
     font-weight: 500;
     padding: 2px 8px;
     border-radius: 12px;
-    background-color: #F3E8FF; /* Morado pálido */
-    color: #6B21A8; /* Morado oscuro */
+    background-color: #F3E8FF;
+    color: #6B21A8;
 }
-
 .stock-info.low-stock {
-    background-color: #FEF9C3; /* Amarillo pálido */
-    color: #854D0E; /* Amarillo oscuro */
+    background-color: #FEF9C3;
+    color: #854D0E;
 }
-
 .stock-info.out-of-stock-badge {
-    background-color: #FEE2E2; /* Rojo pálido */
-    color: #991B1B; /* Rojo oscuro */
+    background-color: #FEE2E2;
+    color: #991B1B;
 }
-
 .out-of-stock {
     opacity: 0.6;
-    pointer-events: none; /* Deshabilita interacciones */
+    pointer-events: none;
 }
-
 .out-of-stock .btn-edit, .out-of-stock .btn-delete {
-    pointer-events: all; /* Reactiva los botones para que se pueda editar/eliminar */
+    pointer-events: all;
 }
 
 /* --- ESTILOS PÁGINA DE ESTADO --- */
@@ -268,11 +264,53 @@ input[type="text"]:focus, input[type="number"]:focus, input[type="search"]:focus
     border-color: #FBCFE8;
 }
 #status-payment-difference.balanced {
-    color: #16a34a; /* green-600 */
+    color: #16a34a;
 }
 #status-payment-difference.unbalanced {
-    color: #dc2626; /* red-600 */
+    color: #dc2626;
 }
+
+/* --- ESTILOS HORARIOS PICO --- */
+.peak-hour-slot {
+    border: 1px solid #FBCFE8;
+    border-radius: 8px;
+    padding: 1rem;
+    background-color: #FFF5F7;
+}
+.peak-hour-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    color: #9D174D;
+}
+.peak-hour-time {
+    font-size: 1.1rem;
+}
+.peak-hour-total {
+    font-size: 1rem;
+    background-color: #FCE7F3;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+.peak-hour-products {
+    list-style: none;
+    padding: 0;
+    margin-top: 0.75rem;
+    border-top: 1px solid #FCE7F3;
+    padding-top: 0.75rem;
+}
+.peak-hour-products li {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: #BE185D;
+}
+.peak-hour-products li .quantity {
+    color: #9D174D;
+    font-weight: 500;
+}
+
 
 /* --- Estilos para la notificación --- */
 .notification {
