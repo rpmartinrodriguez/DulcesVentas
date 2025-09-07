@@ -5,9 +5,9 @@ import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc
 // Tu configuración de la app web de Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDQLIN0Cr8QOP0fmAvIwcEKJ_bMA6DSKGg",
-  authDomain: "dulcesventa-d39d9.firebaseapp.com",
-  projectId: "dulcesventa-d39d9",
-  storageBucket: "dulcesventa-d39d9.appspot.com",
+  authDomain: "dulcesventa-d9d9.firebaseapp.com",
+  projectId: "dulcesventa-d9d9",
+  storageBucket: "dulcesventa-d9d9.appspot.com",
   messagingSenderId: "33922184409",
   appId: "1:33922184409:web:466bba42090f8c842e3ac8"
 };
@@ -32,6 +32,7 @@ const salesHistoryEl = document.getElementById('sales-history');
 const notificationEl = document.getElementById('notification');
 const salesSummaryCard = document.getElementById('sales-summary-card');
 const searchInput = document.getElementById('search-input');
+const peakHoursCard = document.getElementById('peak-hours-card'); // Nuevo selector
 
 // Selectores del Modal de Edición
 const editModal = document.getElementById('edit-modal');
@@ -79,7 +80,7 @@ onSnapshot(articlesCollection, (snapshot) => {
     initializeDashboardState();
     renderArticles(articles);
     filterAndRenderDashboard();
-    renderStatusPage(currentSales, currentArticles); // Actualizar estado si cambian los artículos
+    renderStatusPage(currentSales, currentArticles);
 });
 
 function initializeDashboardState() {
@@ -338,6 +339,7 @@ onSnapshot(salesCollection, (snapshot) => {
     renderSales(currentSales);
     renderSalesSummary(currentSales);
     renderStatusPage(currentSales, currentArticles);
+    renderPeakHours(currentSales); // Llamada a la nueva función
 });
 
 function renderSales(sales) {
@@ -414,6 +416,73 @@ function renderSalesSummary(sales) {
     `;
 }
 
+// --- LÓGICA DE HORARIOS PICO ---
+function renderPeakHours(sales) {
+    if (sales.length === 0) {
+        peakHoursCard.innerHTML = `
+            <h2 class="text-2xl font-semibold text-pink-700 mb-4">🕒 Horarios Pico de Ventas</h2>
+            <p class="text-gray-500">No hay suficientes ventas para analizar los horarios pico.</p>
+        `;
+        return;
+    }
+
+    const timeSlots = {};
+
+    sales.forEach(sale => {
+        const date = sale.createdAt.toDate();
+        let minutes = date.getMinutes();
+        minutes = minutes < 30 ? 0 : 30; // Redondear a intervalos de 30 min
+        const slotKey = `${date.getHours().toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        
+        if (!timeSlots[slotKey]) {
+            timeSlots[slotKey] = { total: 0, products: {} };
+        }
+        
+        timeSlots[slotKey].total += sale.total;
+        sale.items.forEach(item => {
+            timeSlots[slotKey].products[item.name] = (timeSlots[slotKey].products[item.name] || 0) + item.quantity;
+        });
+    });
+
+    const sortedSlots = Object.entries(timeSlots)
+        .sort(([, a], [, b]) => b.total - a.total)
+        .slice(0, 3);
+
+    let html = `<h2 class="text-2xl font-semibold text-pink-700 mb-4">🕒 Horarios Pico de Ventas</h2>`;
+    if (sortedSlots.length === 0) {
+        html += `<p class="text-gray-500">No hay datos de ventas para mostrar.</p>`;
+    } else {
+        html += `<div class="space-y-4">`;
+        sortedSlots.forEach(([time, data]) => {
+            const topProducts = Object.entries(data.products)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 3);
+            
+            let productsHtml = topProducts.map(([name, quantity]) => `
+                <li>
+                    <span>${name}</span>
+                    <span class="quantity">${quantity} u.</span>
+                </li>
+            `).join('');
+
+            html += `
+                <div class="peak-hour-slot">
+                    <div class="peak-hour-header">
+                        <span class="peak-hour-time">${time} - ${time.split(':')[1] === '00' ? time.split(':')[0] + ':30' : (parseInt(time.split(':')[0]) + 1).toString().padStart(2, '0') + ':00'}</span>
+                        <span class="peak-hour-total">$${data.total.toFixed(2)}</span>
+                    </div>
+                    <ul class="peak-hour-products">
+                        ${productsHtml}
+                    </ul>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+    
+    peakHoursCard.innerHTML = html;
+}
+
 // --- LÓGICA DE PÁGINA DE ESTADO ---
 function renderStatusPage(sales, articles) {
     let totalSales = 0;
@@ -429,9 +498,7 @@ function renderStatusPage(sales, articles) {
     document.getElementById('status-total-sales').textContent = `$${totalSales.toFixed(2)}`;
     document.getElementById('status-total-costs').textContent = `-$${totalCosts.toFixed(2)}`;
     document.getElementById('status-gross-profit').textContent = `$${grossProfit.toFixed(2)}`;
-
-    // *** CORRECCIÓN DE CÁLCULO AQUÍ ***
-    // Se cambia article.salePrice por article.costPrice
+    
     let remainingStockValue = 0;
     articles.forEach(article => {
         remainingStockValue += (article.currentStock || 0) * (article.costPrice || 0);
