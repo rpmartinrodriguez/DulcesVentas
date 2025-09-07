@@ -102,6 +102,7 @@ function renderArticles(articles) {
     }
     articles.forEach(article => {
         const articleEl = document.createElement('div');
+        // *** CORRECCIÓN AQUÍ: Nos aseguramos de que el stock sea un número válido. ***
         const currentStock = Number(article.currentStock) || 0;
         const isOutOfStock = currentStock <= 0;
         articleEl.className = `flex justify-between items-center bg-pink-50 p-3 rounded-lg ${isOutOfStock ? 'out-of-stock' : ''}`;
