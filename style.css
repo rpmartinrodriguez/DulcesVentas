@@ -263,6 +263,17 @@ input[type="text"]:focus, input[type="number"]:focus, input[type="search"]:focus
     pointer-events: all; /* Reactiva los botones para que se pueda editar/eliminar */
 }
 
+/* --- ESTILOS PÁGINA DE ESTADO --- */
+#payment-justification-form input {
+    border-color: #FBCFE8;
+}
+#status-payment-difference.balanced {
+    color: #16a34a; /* green-600 */
+}
+#status-payment-difference.unbalanced {
+    color: #dc2626; /* red-600 */
+}
+
 /* --- Estilos para la notificación --- */
 .notification {
     position: fixed;
