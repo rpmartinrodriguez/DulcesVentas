@@ -2,12 +2,12 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Tu configuración de la app web de Firebase
+// Tu configuración de la app web de Firebase (Versión original y correcta)
 const firebaseConfig = {
   apiKey: "AIzaSyDQLIN0Cr8QOP0fmAvIwcEKJ_bMA6DSKGg",
-  authDomain: "dulcesventa-d9d9.firebaseapp.com",
-  projectId: "dulcesventa-d9d9",
-  storageBucket: "dulcesventa-d9d9.appspot.com",
+  authDomain: "dulcesventa-d39d9.firebaseapp.com",
+  projectId: "dulcesventa-d39d9",
+  storageBucket: "dulcesventa-d39d9.firebasestorage.app",
   messagingSenderId: "33922184409",
   appId: "1:33922184409:web:466bba42090f8c842e3ac8"
 };
@@ -32,7 +32,7 @@ const salesHistoryEl = document.getElementById('sales-history');
 const notificationEl = document.getElementById('notification');
 const salesSummaryCard = document.getElementById('sales-summary-card');
 const searchInput = document.getElementById('search-input');
-const peakHoursCard = document.getElementById('peak-hours-card'); // Nuevo selector
+const peakHoursCard = document.getElementById('peak-hours-card'); 
 
 // Selectores del Modal de Edición
 const editModal = document.getElementById('edit-modal');
@@ -81,6 +81,9 @@ onSnapshot(articlesCollection, (snapshot) => {
     renderArticles(articles);
     filterAndRenderDashboard();
     renderStatusPage(currentSales, currentArticles);
+}, (error) => {
+    console.error("Error al leer los artículos: ", error);
+    showNotification("Error al conectar con la base de datos de artículos.", "error");
 });
 
 function initializeDashboardState() {
@@ -339,8 +342,12 @@ onSnapshot(salesCollection, (snapshot) => {
     renderSales(currentSales);
     renderSalesSummary(currentSales);
     renderStatusPage(currentSales, currentArticles);
-    renderPeakHours(currentSales); // Llamada a la nueva función
+    renderPeakHours(currentSales); 
+}, (error) => {
+    console.error("Error al leer las ventas: ", error);
+    showNotification("Error al conectar con la base de datos de ventas.", "error");
 });
+
 
 function renderSales(sales) {
     salesHistoryEl.innerHTML = '';
@@ -431,7 +438,7 @@ function renderPeakHours(sales) {
     sales.forEach(sale => {
         const date = sale.createdAt.toDate();
         let minutes = date.getMinutes();
-        minutes = minutes < 30 ? 0 : 30; // Redondear a intervalos de 30 min
+        minutes = minutes < 30 ? 0 : 30; 
         const slotKey = `${date.getHours().toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
         
         if (!timeSlots[slotKey]) {
@@ -482,6 +489,7 @@ function renderPeakHours(sales) {
     
     peakHoursCard.innerHTML = html;
 }
+
 
 // --- LÓGICA DE PÁGINA DE ESTADO ---
 function renderStatusPage(sales, articles) {
