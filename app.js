@@ -38,7 +38,12 @@ const editModal = document.getElementById('edit-modal');
 const closeModalBtn = document.getElementById('close-modal-btn');
 const editArticleForm = document.getElementById('edit-article-form');
 
+// Selectores de la Página de Estado
+const paymentJustificationForm = document.getElementById('payment-justification-form');
+
+// Variables globales para mantener los datos actualizados
 let currentArticles = []; 
+let currentSales = [];
 let dashboardState = {};
 
 // --- LÓGICA DE NOTIFICACIÓN ---
@@ -74,6 +79,7 @@ onSnapshot(articlesCollection, (snapshot) => {
     initializeDashboardState();
     renderArticles(articles);
     filterAndRenderDashboard();
+    renderStatusPage(currentSales, currentArticles); // Actualizar estado si cambian los artículos
 });
 
 function initializeDashboardState() {
@@ -292,9 +298,7 @@ dashboardTableBody.addEventListener('input', (e) => {
 closeOrderBtn.addEventListener('click', async () => {
     const items = [];
     let totalSale = 0;
-
     const updates = []; // Array para guardar las promesas de actualización
-
     Object.keys(dashboardState).forEach(articleId => {
         const state = dashboardState[articleId];
         const article = currentArticles.find(a => a.id === articleId);
@@ -307,19 +311,14 @@ closeOrderBtn.addEventListener('click', async () => {
                     salePrice: article.salePrice, quantity: quantityToSell, total
                 });
                 totalSale += total;
-                // Preparamos la actualización del stock
                 const articleRef = doc(db, 'articles', article.id);
                 updates.push(updateDoc(articleRef, { currentStock: increment(-quantityToSell) }));
             }
         }
     });
-
     if (items.length > 0) {
-        // Primero registramos la venta
         await addDoc(salesCollection, { items, total: totalSale, createdAt: new Date() });
-        // Luego, ejecutamos todas las actualizaciones de stock en paralelo
         await Promise.all(updates);
-
         showNotification('¡Venta registrada y stock actualizado!', 'success');
         items.forEach(item => { dashboardState[item.articleId] = { selected: false, quantity: 1 }; });
         filterAndRenderDashboard();
@@ -333,9 +332,10 @@ closeOrderBtn.addEventListener('click', async () => {
 onSnapshot(salesCollection, (snapshot) => {
     const sales = [];
     snapshot.forEach(doc => sales.push({ id: doc.id, ...doc.data() }));
-    sales.sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate());
-    renderSales(sales);
-    renderSalesSummary(sales);
+    currentSales = sales.sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate());
+    renderSales(currentSales);
+    renderSalesSummary(currentSales);
+    renderStatusPage(currentSales, currentArticles); // Actualizar estado si cambian las ventas
 });
 
 function renderSales(sales) {
@@ -369,7 +369,6 @@ function renderSalesSummary(sales) {
     let grandTotal = 0;
     let totalProfit = 0;
     const productSummary = {};
-
     sales.forEach(sale => {
         grandTotal += sale.total;
         sale.items.forEach(item => {
@@ -378,11 +377,9 @@ function renderSalesSummary(sales) {
             totalProfit += profit;
         });
     });
-    
     const topProducts = Object.entries(productSummary)
         .sort(([, qtyA], [, qtyB]) => qtyB - qtyA)
         .slice(0, 5);
-        
     let topProductsHtml = '<h3 class="text-xl font-semibold text-pink-700 mt-6 mb-3 border-t border-pink-200 pt-4">🏆 Productos Estrella</h3>';
     if (topProducts.length === 0) {
         topProductsHtml += '<p class="text-sm text-gray-500">No hay suficientes datos de ventas.</p>';
@@ -401,7 +398,6 @@ function renderSalesSummary(sales) {
         });
         topProductsHtml += '</ol>';
     }
-
     salesSummaryCard.innerHTML = `
         <h2 class="text-2xl font-semibold text-pink-700 mb-4">Resumen General</h2>
         <div class="mb-4">
@@ -415,3 +411,58 @@ function renderSalesSummary(sales) {
         ${topProductsHtml}
     `;
 }
+
+// --- LÓGICA DE PÁGINA DE ESTADO ---
+function renderStatusPage(sales, articles) {
+    // 1. Calcular Balance
+    let totalSales = 0;
+    let totalCosts = 0;
+    sales.forEach(sale => {
+        totalSales += sale.total;
+        sale.items.forEach(item => {
+            totalCosts += (item.costPrice || 0) * item.quantity;
+        });
+    });
+    const grossProfit = totalSales - totalCosts;
+
+    document.getElementById('status-total-sales').textContent = `$${totalSales.toFixed(2)}`;
+    document.getElementById('status-total-costs').textContent = `-$${totalCosts.toFixed(2)}`;
+    document.getElementById('status-gross-profit').textContent = `$${grossProfit.toFixed(2)}`;
+
+    // 2. Calcular Stock Restante Valorizado
+    let remainingStockValue = 0;
+    articles.forEach(article => {
+        remainingStockValue += (article.currentStock || 0) * (article.salePrice || 0);
+    });
+    document.getElementById('status-remaining-stock-value').textContent = `$${remainingStockValue.toFixed(2)}`;
+
+    // 3. Lógica de Justificación (se dispara con el input)
+    updatePaymentJustification(totalSales);
+}
+
+function updatePaymentJustification(totalSales) {
+    const cash = parseFloat(document.getElementById('payment-cash').value) || 0;
+    const mp = parseFloat(document.getElementById('payment-mp').value) || 0;
+    const brubank = parseFloat(document.getElementById('payment-brubank').value) || 0;
+    
+    const paymentSum = cash + mp + brubank;
+    const difference = paymentSum - totalSales;
+
+    const sumEl = document.getElementById('status-payment-sum');
+    const diffEl = document.getElementById('status-payment-difference');
+    
+    sumEl.textContent = `$${paymentSum.toFixed(2)}`;
+    diffEl.textContent = `${difference >= 0 ? '+' : '-'}$${Math.abs(difference).toFixed(2)}`;
+
+    if (Math.abs(difference) < 0.01) { // Usar una tolerancia pequeña para flotantes
+        diffEl.className = 'balanced';
+    } else {
+        diffEl.className = 'unbalanced';
+    }
+}
+
+paymentJustificationForm.addEventListener('input', () => {
+    // Recalcular con el total de ventas actual
+    const totalSales = currentSales.reduce((sum, sale) => sum + sale.total, 0);
+    updatePaymentJustification(totalSales);
+});
