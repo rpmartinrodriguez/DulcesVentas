@@ -114,7 +114,6 @@
                             <h2 class="text-2xl font-semibold text-pink-700 mb-6">Historial de Ventas</h2>
                             <div id="sales-history" class="space-y-4"></div>
                         </div>
-                        <!-- Contenedor para los Horarios Pico -->
                         <div id="peak-hours-card" class="card p-6"></div>
                     </div>
                     <div class="lg:col-span-1">
@@ -150,8 +149,18 @@
                     <!-- Stock Restante -->
                     <div class="card p-6 md:row-start-2 lg:row-start-1 lg:col-start-3">
                          <h2 class="text-2xl font-semibold text-pink-700 mb-4">Stock Restante</h2>
-                         <p class="text-lg text-gray-600">Valorizado a Precio de Costo</p>
-                         <p id="status-remaining-stock-value" class="text-4xl font-bold text-blue-600 mt-2">$0.00</p>
+                         <p class="text-sm text-gray-500 mb-3">Detalle de productos sin vender.</p>
+                         
+                         <!-- *** NUEVA ESTRUCTURA PARA LA LISTA *** -->
+                         <div id="status-remaining-stock-list" class="space-y-2 max-h-60 overflow-y-auto pr-2">
+                             <!-- El contenido se generará con JavaScript -->
+                         </div>
+
+                         <hr class="my-4 border-pink-200">
+                         <div class="flex justify-between items-center text-lg">
+                            <span class="font-semibold text-gray-700">Total Costo Stock</span>
+                            <span id="status-remaining-stock-value" class="font-bold text-blue-600 text-2xl">$0.00</span>
+                         </div>
                     </div>
 
                     <!-- Justificación de la Venta -->
